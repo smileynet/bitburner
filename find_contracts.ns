@@ -1,0 +1,34 @@
+async function search_servers_for_contract(ns, origin_server, servers_to_process, servers_with_contracts) {
+	if (servers_to_process.length == 0) {
+		ns.print(`Error, empty server list in search_servers_for_contract!`);
+	} else {
+		for (const server_name of servers_to_process) {
+			var contracts = ns.ls(server_name, "cct");
+			if (contracts.length > 0) {
+				servers_with_contracts.push({'server_name': server_name, 'contracts': contracts});
+			}
+			var new_servers = ns.scan(server_name);
+			new_servers = new_servers.filter(e => e !== origin_server);
+			if (new_servers.length > 0) {
+				servers_with_contracts = await search_servers_for_contract(ns, server_name, new_servers, servers_with_contracts);
+			}
+		}
+		return servers_with_contracts;
+	}
+}
+
+
+/** @param {NS} ns **/
+export async function main(ns) {
+	var new_servers = ns.scan("home");
+	var servers_with_contracts = [];
+    servers_with_contracts = await search_servers_for_contract(ns, "home", new_servers, servers_with_contracts);
+	ns.tprint(`Available contracts:`);
+	for (const server of servers_with_contracts) {
+		ns.tprint(`Server: ${server['server_name']}`);
+		for (const contract of server['contracts']) {
+			ns.tprint(contract);
+		}
+		ns.tprint(``);
+	}
+}

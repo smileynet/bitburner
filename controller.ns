@@ -1,0 +1,102 @@
+import {display_target_update, get_available_servers, display_minutes_and_seconds} from "utils.ns";
+
+export function get_available_servers(ns) {
+	var filename = "available_servers.txt"
+	var available_servers = get_array_from_file(ns, filename);
+	return available_servers;
+}
+export async function display_botnet_update(ns, result) {
+		await display_target_update(ns)
+        ns.tprint(`${result['total_threads']} threads in use. Estimated execution time: ${display_minutes_and_seconds(result['time_to_sleep'])}`);
+        wait_for_completion(ns, time_to_sleep);
+}
+
+function wait_for_completion(ns, time_to_sleep) {
+    // TODO: Create progress tracker    
+    await ns.sleep(time_to_sleep);
+}
+
+var available_servers = []; // TODO: Fix this, globals r bad mmmk
+
+export async function do_lower_security(ns, target_server) {
+    var current_script = "/botnet/weaken_security.ns";
+    var result = {'time_to_sleep':ns.getWeakenTime(target_server)};
+    result['total_threads'] = await do_run_script(ns, current_script);
+    return result
+}
+
+export async function do_grow_money(ns, target_server) {
+    var current_script = "grow_money.ns";
+    var result = {'time_to_sleep':ns.getGrowTime(target_server)};
+    result['total_threads'] = await do_run_script(ns, current_script);
+    return result   
+}
+
+export async function do_hack_target(ns, target_server) {
+    var current_script = "hack_server.ns";
+    var result = {'time_to_sleep':ns.getHackTime(target_server)};
+    result['total_threads'] = await do_run_script(ns, current_script);
+    return result
+    
+}
+
+export async function do_run_script(ns, current_script) {
+    var total_threads = 0;
+    for(const server_name of available_servers) {
+        var server = ns.getServer(server_name); 
+        var script_ram = ns.getScriptRam(current_script, server_name);
+        var max_threads = Math.floor(server.maxRam / script_ram);
+        ns.killall(server_name);
+        ns.exec(current_script, server_name, max_threads, target_server);
+        ns.print(`Server ${server_name} launching ${current_script} with ${max_threads} threads.`);
+        total_threads = total_threads + max_threads;
+    }
+    return total_threads;
+}
+
+/**
+* @param {NS} ns
+**/
+export async function main(ns) {
+    if (ns.args[0]) {
+        var target_server = ns.args[0];
+    } else {
+        var target_server = ns.read("current_target.txt");
+    }
+
+    ns.tprint(`Initializing bot attack against target: ${target_server}`);
+
+    available_servers = await get_available_servers();
+    
+    var money_target = ns.getServerMaxMoney(target_server) * 0.9;
+    var money_min = ns.getServerMaxMoney(target_server) * 0.7;
+    var security_target = ns.getServerMinSecurityLevel(target_server) + 5;
+    var security_min = ns.getServerMinSecurityLevel(target_server) + 10;
+    var security_level = ns.getServerSecurityLevel(target_server);
+    var money_available = ns.getServerMoneyAvailable(target_server);
+    var result = {};
+    
+    while(true) { 
+        if (security_level > security_min) {
+            ns.tprint(`Security outside of acceptable parameters, lowering security.`);
+            while(security_level > security_target) {
+                result = await do_lower_security(ns, target_server);
+                await display_update(ns, result);
+                security_level = ns.getServerSecurityLevel(target_server);
+            }
+        } else if (money_available < money_min) {
+            ns.tprint(`Security inside of acceptable parameters, growing money to target level.`);
+            while(money_available < money_target) {
+                result = await do_grow_money(ns, target_server);
+                await display_update(ns, result);
+                money_available = ns.getServerMoneyAvailable(target_server);
+            }
+        } else {
+            ns.tprint(`Security and money are within acceptable parameters, hacking the target.`);
+            result = await do_hack_target(ns, target_server);
+            await display_update(ns, result);
+        }
+        security_level = ns.getServerSecurityLevel(target_server);
+        money_available = ns.getServerMoneyAvailable(target_server);
+    }
+}

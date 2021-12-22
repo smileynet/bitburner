@@ -1,0 +1,34 @@
+/** @param {NS} ns **/
+
+import {current_hack_script} from "utils.ns";
+import {do_server_scan_and_hack} from "refresh_hack.ns";
+
+export async function main(ns) {
+	if (ns.args[0]) {
+		var target_server = ns.args[0]		
+	} else {
+		var target_server = ns.read("current_target.txt")
+	}
+
+	await do_server_scan_and_hack(ns);
+
+	ns.print(`Current target: ${target_server}`);
+	var server_name = "home";
+	var current_script = await current_hack_script();
+	
+	ns.print(`Current hack script: ${current_script}`);
+
+	var script_ram = ns.getScriptRam(current_script, server_name);
+	var free_ram_buffer = 0;
+	//var ram_available = ns.getServerMaxRam(server_name) - (ns.getServerUsedRam(server_name) + free_ram_buffer);
+	var ram_available = ns.getServerMaxRam(server_name) - free_ram_buffer;
+	var max_threads = Math.floor(ram_available / script_ram);
+
+	ns.tprint(`Attempting to launch ${current_script} on ${server_name} with ${max_threads} threads.`);
+
+	if( max_threads > 0) {
+		await ns.spawn(current_script, max_threads, target_server);
+	} else {
+		ns.tprint(`ERROR: Threads is not a positive number!`)
+	}
+}

@@ -1,0 +1,30 @@
+import {get_shortened_number} from "utils.ns";
+import {get_current_territory} from "gang_runner.ns";
+
+function get_gang_power(ns) {
+	return ns.gang.getGangInformation()['power'];
+}
+
+async function write_gain_stats(ns, power_change, territory_change) {
+	await ns.write("status_update_gang.txt", [power_change, territory_change], "w");
+}
+
+/** @param {NS} ns **/
+export async function main(ns) {
+	var prev_gang_power = get_gang_power(ns);
+	var prev_territory = get_current_territory(ns);
+	while(true){
+		var current_gang_power = get_gang_power(ns);
+		var current_territory = get_current_territory(ns);
+		var power_change = current_gang_power - prev_gang_power;
+		var territory_change = current_territory - prev_territory;
+		if(!ns.isRunning('/status/custom_hud.js')) {
+			ns.tprint(`Power gain: ${get_shortened_number(ns, power_change)} Current power: ${get_shortened_number(ns, current_gang_power)} Previous power: ${get_shortened_number(ns, prev_gang_power)}`)
+			ns.tprint(`Territory gain: ${ns.nFormat((territory_change * 100),'0.00')}% Current territory: ${ns.nFormat((current_territory * 100),'0.00')}% Previous territory: ${ns.nFormat((prev_territory * 100),'0.00')}%`)
+		}
+		await write_gain_stats(ns, power_change, territory_change);
+		prev_gang_power = current_gang_power;
+		prev_territory = current_territory;
+		await ns.sleep(60000);
+	}
+}

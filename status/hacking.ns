@@ -1,0 +1,17 @@
+import {get_shortened_number} from "utils.ns";
+
+function display_status(ns) {
+	var script_money = ns.getScriptIncome()[0];
+	var script_exp = ns.getScriptExpGain();
+	if(!ns.isRunning('/status/custom_hud.js')) {
+		ns.tprint(`Taskmaster money gain: \$${get_shortened_number(ns, script_money)} / sec     exp gain: ${get_shortened_number(ns, script_exp)} / sec`);
+	}
+}
+
+/** @param {NS} ns **/
+export async function main(ns) {
+	while(true){
+	 	display_status(ns);
+		await ns.sleep(180000);
+	}
+}

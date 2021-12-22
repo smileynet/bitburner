@@ -1,0 +1,117 @@
+/** @param {NS} ns **/
+
+import { wait_for_sufficient_money } from "utils.ns";
+
+export async function main(ns) {
+	ns.disableLog("disableLog");
+	ns.disableLog("sleep");
+
+	if (ns.args[0]) {
+		var max_cost = ns.args[0];
+	}
+
+	var max_num_nodes = 4;
+	var max_node_level = 200;
+	var max_node_ram = 64;
+	var max_node_core = 16;
+
+	var current_num_nodes = ns.hacknet.numNodes();
+
+	if (current_num_nodes == 0) {
+		var cost = ns.hacknet.getPurchaseNodeCost();
+		ns.print(`Purchasing first Hacknet node.`);
+		await wait_for_sufficient_money(ns, cost);
+		ns.hacknet.purchaseNode();
+		ns.toast(`First Hacknet node purchased!`);
+	}
+
+	while (true) {
+		var lowest_node_level = false;
+		var lowest_node_level_index = false;
+		var lowest_node_ram = false;
+		var lowest_node_ram_index = false;
+		var lowest_node_core = false;
+		var lowest_node_core_index = false;
+		current_num_nodes = ns.hacknet.numNodes();
+
+		for (var i = 0; i < current_num_nodes; i++) {
+			var current_node = ns.hacknet.getNodeStats(i);
+			if (lowest_node_level == false || current_node.level < lowest_node_level) {
+				lowest_node_level = current_node.level;
+				lowest_node_level_index = i;
+			}
+			if (lowest_node_ram == false || current_node.ram < lowest_node_ram) {
+				lowest_node_ram = current_node.ram;
+				lowest_node_ram_index = i;
+			}
+			if (lowest_node_core == false || current_node.cores < lowest_node_core) {
+				lowest_node_core = current_node.cores;
+				lowest_node_core_index = i;
+			}
+		}
+
+		ns.print(`Current number of nodes: ${current_num_nodes} - Max ${max_num_nodes}`);
+		ns.print(`Lowest node level: ${lowest_node_level} - Node ${lowest_node_level_index} - Max ${max_node_level}`);
+		ns.print(`Lowest node ram: ${lowest_node_ram} - Node ${lowest_node_ram_index} - Max ${max_node_ram}`);
+		ns.print(`Lowest node cores: ${lowest_node_core} - Node ${lowest_node_core_index} - Max ${max_node_core}`);
+
+		// TODO: Find most efficient gain
+		var next_node_cost = ns.hacknet.getPurchaseNodeCost();
+		var next_level_cost = ns.hacknet.getLevelUpgradeCost(lowest_node_level_index, 1);
+		var next_ram_cost = ns.hacknet.getRamUpgradeCost(lowest_node_ram_index, 1);
+		var next_core_cost = ns.hacknet.getCoreUpgradeCost(lowest_node_core_index, 1);
+
+		ns.print(`Next node cost:  \$${ns.nFormat(next_node_cost, '0,0.00')}`);
+		ns.print(`Next level cost: \$${ns.nFormat(next_level_cost, '0,0.00')}`);
+		ns.print(`Next ram cost:   \$${ns.nFormat(next_ram_cost, '0,0.00')}`);
+		ns.print(`Next core cost:  \$${ns.nFormat(next_core_cost, '0,0.00')}`);
+
+		var potential_upgrades = [];
+		potential_upgrades.push({ 'type': 'node', 'cost': next_node_cost, 'index': false, 'amount': current_num_nodes, 'max': max_num_nodes })
+		potential_upgrades.push({ 'type': 'level', 'cost': next_level_cost, 'index': lowest_node_level_index, 'amount': lowest_node_level, 'max': max_node_level })
+		potential_upgrades.push({ 'type': 'ram', 'cost': next_ram_cost, 'index': lowest_node_ram_index, 'amount': lowest_node_ram, 'max': max_node_ram })
+		potential_upgrades.push({ 'type': 'cores', 'cost': next_core_cost, 'index': lowest_node_core_index, 'amount': lowest_node_core, 'max': max_node_core })
+
+		potential_upgrades.sort((firstItem, secondItem) => firstItem.cost - secondItem.cost);
+
+		if (max_cost) {
+			if (max_cost < next_node_cost && max_cost < next_level_cost && max_cost < next_ram_cost && max_cost < next_core_cost) { // TODO: Use array of dicts
+				ns.tprint(`Hacknet node upgrades complete!`);
+				ns.toast(`Hacknet node upgrades complete!`);
+				ns.exit();
+			}
+		}
+		if (lowest_node_level >= max_node_level && lowest_node_ram >= max_node_ram && lowest_node_core >= max_node_core && current_num_nodes >= max_num_nodes) { // TODO: Use array of dicts
+			
+		}
+
+		var next_action = false;
+
+		for (const upgrade of potential_upgrades) {
+			if (upgrade['amount'] < upgrade['max']) {
+				next_action = upgrade;
+				break;
+			}
+		}
+
+		if (next_action == false) {
+			ns.tprint(`Hacknet node upgrades complete!`);
+			ns.toast(`Hacknet node upgrades complete!`);
+			ns.exit();
+		} else {
+			var cost = next_action['cost'];
+			ns.print(`Hacknet ${next_action['type']} purchase is next.`);
+			await wait_for_sufficient_money(ns, cost);
+			if (next_action['type'] == 'level') {
+				ns.hacknet.upgradeLevel(next_action['index'], 1);
+			} else if (next_action['type'] == 'ram') {
+				ns.hacknet.upgradeRam(next_action['index'], 1);
+			} else if (next_action['type'] == 'cores') {
+				ns.hacknet.upgradeCore(next_action['index'], 1);
+			} else if (next_action['type'] == 'node') {
+				ns.hacknet.purchaseNode();
+			}
+			ns.print(`Hacknet node ${next_action['type']} purchase complete!`);
+		}			
+	}
+}

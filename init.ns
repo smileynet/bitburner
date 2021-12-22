@@ -1,0 +1,19 @@
+/** @param {NS} ns **/
+
+export async function main(ns) {
+    ns.rm("available_servers.txt");
+    ns.rm("current_target.txt");
+    ns.rm("valid_targets.txt");
+    ns.rm("max_ram_target.txt");
+    ns.rm("status_update_gang.txt");
+
+    await ns.write("all_gang_equip_status.txt", false, "w");
+    await ns.write("max_ram_target.txt", 2, "w");
+
+    var scripts_to_launch = ["gang_runner.ns","taskmaster.ns","status/custom_hud.js","upgrade_gang_equip.ns"];
+    
+    for(const script of scripts_to_launch) {
+        ns.exec(script,"home");
+        await ns.sleep(1000);
+    }
+}

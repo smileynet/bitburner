@@ -1,0 +1,180 @@
+/** @param {NS} ns **/
+
+import {init_hacking_server, get_available_servers} from "utils.ns";
+
+export async function do_open_server(ns, server) {
+	var server_name = server.hostname;
+	if(ns.fileExists("BruteSSH.exe", "home")) {
+		ns.tprint(`Opening ports...`);
+		ns.brutessh(server_name);
+	}
+	if(ns.fileExists("FTPCrack.exe", "home")) {
+		ns.ftpcrack(server_name);
+	}
+	if(ns.fileExists("relaySMTP.exe", "home")) {
+		ns.relaysmtp(server_name);
+	}
+	if(ns.fileExists("HTTPWorm.exe", "home")) {
+		ns.httpworm(server_name);
+	}
+	if(ns.fileExists("SQLInject.exe", "home")) {
+		ns.sqlinject(server_name);
+	}
+	ns.tprint(`Nuking...`);
+	var result = await ns.nuke(server_name);
+	ns.tprint(`Nuke result for ${server_name}: ${result}`);
+	return result;
+}
+
+export async function max_hackable_ports(ns) {
+	var max_ports = 0;
+
+	var port_hacker_programs = ["BruteSSH.exe","FTPCrack.exe","relaySMTP.exe","HTTPWorm.exe","SQLInject.exe"]
+
+	for (const program of port_hacker_programs) {
+		if(ns.fileExists(program, "home")) {
+		max_ports = max_ports + 1;
+		}
+	}
+
+	ns.print(`Max hackable ports: ${max_ports}`);
+	
+	return max_ports;
+}
+
+export async function do_scan_all_available_servers(ns, available_servers) {
+	var known_servers = [];
+	ns.tprint(`known servers: ${known_servers}`);
+	for(const server_name of available_servers) {
+		var new_servers = ns.scan(server_name);
+		ns.tprint(`new servers: ${new_servers}`);
+		known_servers.push.apply(known_servers, new_servers)
+	}
+
+	known_servers = known_servers.filter((value, index, self) =>
+		index === self.findIndex((t) => (
+			t.place === value.place && t.name === value.name
+		))
+	)
+
+	ns.tprint(`unique servers in scan: ${known_servers}`);
+
+	return known_servers;	
+}
+
+export async function main(ns) {
+	var processes = ns.ps("home");
+
+	for (const process of processes) {
+		if (process.filename == "progress_update.ns") {
+			ns.tprint("Killing progress_update.ns");
+			ns.kill(process.filename, "home", process.args[0]);
+		}
+	}
+
+	ns.tprint(`start`);
+	await ns.sleep(1000);
+
+	var available_servers = await get_available_servers(ns);	
+
+	var hacking_level = ns.getHackingLevel();
+	
+	var max_money = false;
+	var target_server = false;
+	var next_hackable_server_skill = false;
+	var next_port_count = false;
+	var max_server_ports = await max_hackable_ports(ns);
+
+	var continue_loop = true;
+
+	while (continue_loop){
+		ns.tprint(`start of loop.`);
+		await ns.sleep(1000);
+		var known_servers = await do_scan_all_available_servers(ns, available_servers);
+		ns.tprint(`known_servers: ${known_servers}`);
+		await ns.sleep(1000);
+	
+		var need_more_skill_servers = [];
+		var need_more_ports_servers = [];
+		var new_servers = [];
+		for (const server_name of known_servers) {
+			ns.tprint(`Checking ${server_name}...`)
+			var server = ns.getServer(server_name);
+			if (server.hasAdminRights == false) {
+				if (server.requiredHackingSkill <= hacking_level) {
+					if (server.numOpenPortsRequired > max_server_ports) {
+						ns.tprint(`Can't open enough ports.`);
+						if (next_port_count == false || server.numOpenPortsRequired < next_port_count) {
+							next_port_count = server.numOpenPortsRequired;
+						}
+						need_more_ports_servers.push(server_name);
+					} else {
+						var result = await do_open_server(ns, server);
+						if (result == true) {
+							new_servers.push(server_name);
+						} // TODO: Error handling
+					}
+				} else {
+					ns.tprint(`Not enough skill.`);
+					if (next_hackable_server_skill == false || server.requiredHackingSkill < next_hackable_server_skill) {
+						next_hackable_server_skill = server.requiredHackingSkill;
+					}
+					need_more_skill_servers.push(server_name);
+				}
+			} else {
+				ns.tprint(`Already have admin rights.`);
+				// available_servers.push(server_name); shouldn't need this anymore
+			}
+		}
+		ns.tprint(`end of loop. ${new_servers}`);
+		await ns.sleep(1000);
+		if (new_servers.length > 0) {
+			ns.tprint(`New servers available: ${new_servers}`);
+			available_servers.push.apply(available_servers, new_servers)
+		} else {
+			continue_loop = false;
+		}
+		
+	}
+
+	
+
+	ns.tprint("");
+	ns.tprint(`Potential targets:`);
+	ns.tprint("");
+
+	for (const server_name of available_servers) {
+		var server = ns.getServer(server_name);
+		if (server.hasAdminRights && server.purchasedByPlayer == false) {
+			ns.tprint(`${server_name} Max money: ${ns.nFormat(server.moneyMax, '0,0')} Growth: ${ns.getServerGrowth(server_name)}`)
+			if (max_money == false || server.moneyMax > max_money) {
+				max_money = server.moneyMax;
+				target_server = server_name;
+			}
+		}
+	}
+
+	await ns.write("available_servers.txt", available_servers, "w");
+	await ns.write("current_target.txt", target_server, "w");
+
+	ns.tprint("");
+	ns.tprint(`Number of hacked servers: ${available_servers.length}`);
+	ns.tprint("");
+	ns.tprint(`Number of servers that need more skill: ${need_more_skill_servers.length}. Next hackable server skill needed: ${next_hackable_server_skill}`);
+	ns.tprint("");
+	ns.tprint(`Number of servers that need more openable ports: ${need_more_ports_servers.length}. Next open port count target: ${next_port_count}`);
+	ns.tprint("");
+	ns.tprint(`Target server: ${target_server} - Max money: ${ns.nFormat(max_money, '0,0')}`)
+	ns.tprint("");
+
+	for (const server_name of available_servers) {
+		await init_hacking_server(ns, server_name);
+	}
+
+	// TODO: Track available port opening count
+	if(ns.getHackingLevel() > next_hackable_server_skill){
+		ns.spawn("progress_update.ns",1);
+	} else {
+		ns.spawn("progress_update.ns",1,next_hackable_server_skill);
+	}
+}

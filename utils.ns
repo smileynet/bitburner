@@ -1,0 +1,155 @@
+/** @param {NS} ns **/
+
+// import {fn1, fn2, ...} from "script filename"; use function_name
+// import * as namespace from "script filename"; use utils.function_name
+
+var current_drone_scripts = ["smart_hack.ns","/botnet/grow_money.ns","/botnet/hack_server.ns","/botnet/weaken_security.ns"];
+
+export function display_minutes_and_seconds(ns, millis) {
+  var minutes = Math.floor(millis / 60000);
+  var seconds = ((millis % 60000) / 1000).toFixed(0);
+  return get_shortened_number(ns, minutes) + " minutes and " + (seconds < 10 ? '0' : '') + seconds + " seconds.";
+}
+
+export function get_available_servers(ns) {
+	var filename = "available_servers.txt"
+	var available_servers = get_array_from_file(ns, filename);
+	return available_servers;
+}
+
+export function get_valid_targets(ns) {
+	var filename = "valid_targets.txt"
+	var valid_targets = get_array_from_file(ns, filename);
+	return valid_targets;
+}
+
+export function get_array_from_file(ns, filename) {
+	var new_array = [];
+	var file_exists = ns.fileExists(filename)
+	if (file_exists) {
+		var input = ns.read(filename);
+		new_array = input.split(",");
+	} else {
+		ns.alert("File does not exist!")
+	}
+	return new_array
+}
+
+export function read_file (ns, filename) {
+	var file_exists = ns.fileExists(filename);
+	if (file_exists) {
+		var file_contents = ns.read(filename);
+	} else {
+		ns.alert("File does not exist!");
+	}
+	return file_contents;
+}
+
+export async function current_hack_script() {
+	return "smart_hack.ns";
+}
+
+export async function prep_all_servers(ns) {
+	var available_servers = await get_available_servers(ns);
+
+	if (available_servers[0] != "") {
+		for (const server_name of available_servers) {
+			ns.killall(server_name);
+			await ns.scp(current_drone_scripts, server_name);
+		}
+	}
+}
+
+export async function init_bot_server(ns, server_name) {
+	await ns.scp(current_drone_scripts, server_name);
+}
+
+export async function init_hacking_server(ns, server_name, target_server) {
+	ns.print(`Server name: ${server_name}`);
+	
+	var server = ns.getServer(server_name);
+	var current_script = await current_hack_script();
+	
+	ns.print(`Current hack script: ${current_script}`);
+
+	await ns.scp(current_drone_scripts, server_name);
+
+	var script_ram = ns.getScriptRam(current_script, server_name);
+
+	var max_threads = Math.floor(server.maxRam / script_ram);
+
+	if( max_threads > 0) {
+		ns.killall(server_name);
+		ns.print(`Running ${current_script} on ${server_name} with ${max_threads} threads.`);
+		ns.exec(current_script, server_name, max_threads, target_server);
+	}
+
+	return max_threads;
+}
+
+export function get_current_money(ns) {
+	var money_available = ns.getServerMoneyAvailable("home");
+    return money_available;
+}
+
+export function get_shortened_number(ns, number) {
+	var shortened_number = number;
+	if (number / 1000000000000000000000000000000000 > 1 ) {
+		shortened_number = ns.nFormat(shortened_number / 1000000000000000000000000000000000,'0,0.00') + "d";
+	} else if (number / 1000000000000000000000000000000 > 1 ) {
+		shortened_number = ns.nFormat(shortened_number / 1000000000000000000000000000000,'0,0.00') + "n";
+	} else if (number / 1000000000000000000000000000 > 1 ) {
+		shortened_number = ns.nFormat(shortened_number / 1000000000000000000000000000,'0,0.00') + "o";
+	} else if (number / 1000000000000000000000000 > 1 ) {
+		shortened_number = ns.nFormat(shortened_number / 1000000000000000000000000,'0,0.00') + "s7";
+	} else if (number / 1000000000000000000000 > 1 ) {
+		shortened_number = ns.nFormat(shortened_number / 1000000000000000000000,'0,0.00') + "s6";
+	} else if (number / 1000000000000000000 > 1 ) {
+		shortened_number = ns.nFormat(shortened_number / 1000000000000000000,'0,0.00') + "q5";
+	} else if (number / 1000000000000000 > 1 ) {
+		shortened_number = ns.nFormat(shortened_number / 1000000000000000,'0,0.00') + "q4";
+	} else if (number / 1000000000000 > 1 ) {
+		shortened_number = ns.nFormat(shortened_number / 1000000000000,'0,0.00') + "t";
+	} else if (number / 1000000000000 > 1 ) {
+		shortened_number = ns.nFormat(shortened_number / 1000000000000,'0,0.00') + "t";
+	} else if (number / 1000000000 > 1 ) {
+		shortened_number = ns.nFormat(shortened_number / 1000000000,'0,0.00') + "b";
+	} else if (number / 1000000 > 1 ) {
+		shortened_number = ns.nFormat(shortened_number / 1000000,'0,0.00') + "m";
+	} else if (number / 1000 > 1 ) {
+		shortened_number = ns.nFormat(shortened_number / 1000,'0,0.00') + "k";
+	} else {
+		shortened_number = ns.nFormat(shortened_number,'0,0.00');
+	}
+	return shortened_number;
+}
+
+export async function wait_for_sufficient_money(ns, amount) {
+	ns.print(`Waiting for amount \$${get_shortened_number(ns, amount)}`);
+	ns.disableLog("getServerMoneyAvailable");	
+	var current_money = get_current_money(ns);
+	while (current_money < amount) {
+		ns.print(`Need \$${get_shortened_number(ns, amount)}. Have \$${get_shortened_number(ns, current_money)}`);
+		await ns.sleep(3000);
+		current_money = get_current_money(ns);
+	}
+}
+
+export async function pow2ceil(value) {
+  var power = 2;
+  while (value >>= 1) {
+    power <<= 1;
+  }
+  return power;
+}
+
+export async function is_power_of_two(x) {
+    return (Math.log(x)/Math.log(2)) % 1 === 0;
+}
+
+export async function main(ns) {
+	if (ns.args[0] == "prep")
+	{
+		await prep_all_servers(ns);
+	}
+}

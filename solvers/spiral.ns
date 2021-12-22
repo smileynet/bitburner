@@ -1,0 +1,67 @@
+/** @param {NS} ns **/
+
+function top_move(coords, answer, matrix) {
+	for (var i = coords[0][1]; i < coords[1][1]; i++) {
+		answer.push(matrix[coords[0][0]][i]);
+	}
+	return answer;
+}
+
+function right_move(coords, answer, matrix) {
+	for (var i = coords[0][0]; i < coords[1][0]; i++) {
+		answer.push(matrix[i][coords[0][1]]);
+	}
+	return answer;
+}
+
+function bottom_move(coords, answer, matrix) {
+	for (var i = coords[0][1]; i >= coords[1][1]; i--) {
+		answer.push(matrix[coords[0][0]][i]);
+	}
+	return answer;
+}
+
+function left_move(coords, answer, matrix) {
+	for (var i = coords[0][0]; i >= coords[1][0]; i--) {
+		answer.push(matrix[i][coords[0][1]]);
+	}
+	return answer;
+}
+
+export async function main(ns) {
+    var matrix = [
+        [26, 7,43,42,41,16, 2,31,19, 6,19,38],
+        [29,19,13,41,43,14,27, 4,31,43,25,11],
+        [24,50,23,20,22,13,48,43,44, 5, 8,37],
+        [31,45,42,25,23, 3,32,30,48,25,45,25],
+        [16, 4, 8,14,28, 6,32, 2,39,31, 3,31],
+        [29, 7,38,46,34,20,25,10,42,49,12,44],
+        [41,25,37, 6,31,31,16,10, 7,27,29,33],
+        [38,17,40, 5,19,23,36,25,19,42,24,22]
+    ]
+
+	var answer = [];
+
+	var iteration = 0
+	var matrix_y_size = matrix.length;
+	var matrix_x_size = matrix[0].length;
+	var total_size = matrix_x_size * matrix_y_size
+
+	while (answer.length < total_size) {
+		// Reversed based on y axis first nature of array
+		var top_coords = [[iteration, iteration], [iteration, matrix_x_size - iteration]];
+		var right_coords = [[iteration + 1, matrix_x_size - iteration -1], [matrix_y_size - iteration, matrix_x_size - iteration -1]];
+		var bottom_coords = [[matrix_y_size - iteration -1, matrix_x_size - iteration - 2],  [matrix_y_size - iteration - 1, iteration]];
+		var left_coords = [[matrix_y_size - iteration - 2, iteration], [iteration + 1, iteration]];
+
+		answer = top_move(top_coords, answer, matrix);
+		answer = right_move(right_coords, answer, matrix);
+		answer = bottom_move(bottom_coords, answer, matrix);
+		answer = left_move(left_coords, answer, matrix);
+
+		iteration = iteration + 1;
+	}
+
+	ns.tprint(`Total size: ${total_size} count: ${answer.length}`)
+	ns.tprint(answer);
+}

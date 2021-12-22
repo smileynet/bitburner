@@ -1,0 +1,11 @@
+/** @param {NS} ns **/
+export async function main(ns) {
+	var player = ns.getPlayer();
+	var skill_mult = player.hacking_mult;
+	var total_exp_needed = ns.formulas.skills.calculateExp(2500,skill_mult);
+	var current_exp = player.hacking_exp;
+	var current_exp_gain_rate = 121000
+	var time_to_level = (total_exp_needed - current_exp)/current_exp_gain_rate
+	var time_in_hours = time_to_level / 3600
+	ns.tprint(time_in_hours);
+}

@@ -1,0 +1,17 @@
+/** @param {NS} ns **/
+export async function main(ns) {
+    var data = [200,195,133,32,65,177,67,118,180,39,200,115,29,193,122,42,114,184]
+	var max_profit = 0
+
+	for(var i=0; i < data.length; i++) {
+		for (var j=i + i; j < data.length; j++) {
+			var potential_profit = data[j] - data[i]
+			ns.print(`buy: ${data[i]} j: sell{data[j]} profit: ${potential_profit}`)
+			if (potential_profit > max_profit) {
+				max_profit = potential_profit;
+			}
+		}
+	}
+
+	ns.tprint(`Max profit: ${max_profit}`);
+}

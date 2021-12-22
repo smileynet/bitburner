@@ -1,0 +1,59 @@
+import {get_shortened_number, display_minutes_and_seconds} from "utils.ns";
+
+/** @param {NS} ns **/
+export async function main(ns) {
+    var target_level = ns.args[0];
+	var player = ns.getPlayer();
+	var hacking_exp_mult = player['hacking_exp_mult'];
+	var current_exp = player['hacking_exp']
+	var exp_to_target = ns.formulas.skills.calculateExp(target_level, 1);
+	var exp_needed = exp_to_target - current_exp
+	var current_exp_gain_rate = ns.getScriptExpGain()
+	var time_to_level = exp_needed / current_exp_gain_rate
+	ns.tprint(`Current hacking exp: ${get_shortened_number(ns,current_exp)} Current exp gain rate: ${get_shortened_number(ns, current_exp_gain_rate)} /sec`);
+	ns.tprint(`Exp needed for level ${target_level}: ${exp_needed}. Total exp needed: ${exp_to_target}`);
+	ns.tprint(`Time to reach level target at current exp gain rate: ${display_minutes_and_seconds(ns, time_to_level)}`);
+}
+
+/** 
+NS.getHackingMultipliers() method
+Get hacking related multipliers.
+
+Signature:
+
+getHackingMultipliers(): HackingMultipliers;
+Returns:
+
+HackingMultipliers
+
+Object containing the Player’s hacking related multipliers.
+
+Remarks
+RAM cost: 4 GB
+
+Returns an object containing the Player’s hacking related multipliers. These multipliers are returned in fractional forms, not percentages (e.g. 1.5 instead of 150%).
+
+Example
+//Example of how this can be used:
+mults = getHackingMultipliers();
+print(mults.chance);
+print(mults.growth);
+
+SkillsFormulas.calculateExp() method
+Calculate exp for skill level.
+
+Signature:
+
+calculateExp(skill: number, skillMult?: number): number;
+Parameters
+Parameter	Type	Description
+skill	number	target skill level
+skillMult	number	Multiplier for that skill, defaults to 1.
+Returns:
+
+number
+
+The calculated exp required.
+
+
+*/
