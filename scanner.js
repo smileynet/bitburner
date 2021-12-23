@@ -1,6 +1,6 @@
 import * as utils from "utils.ns";
 
-class Taskmaster {
+class Scanner {
     constructor(ns) {
         this.next_hackable_server_skill  = false;
         this.next_port_count = false;
@@ -31,7 +31,7 @@ class Taskmaster {
         return num_ports; 
     }
 
-    async initialize_taskmaster() {
+    async initialize_scanner() {
         this.scan_for_servers();
         await this.root_known_servers();
         // await this.reset_all_servers();   
@@ -206,6 +206,6 @@ class Taskmaster {
 export async function main(ns) {
     ns.disableLog("ALL");
     
-    let taskmaster = new Taskmaster(ns);
-    await taskmaster.initialize_taskmaster();    
+    let scanner = new Scanner(ns);
+    await scanner.initialize_scanner();    
 }
