@@ -99,7 +99,7 @@ class ServerManager {
                 var hostname = ns.purchaseServer("hackserv-" + (this.current_servers.length + 1), this.current_ram_target);
                 await ns.scp(this.bot_scripts, hostname);
                 this.current_servers = ns.getPurchasedServers();
-                ns.tprint(`Server purchased: ${hostname}, RAM: ${this.current_ram_target}.`);
+                ns.tprint(`Server purchased: ${hostname}, RAM: ${this.current_ram_target}. Cost \$${get_shortened_number(ns, cost)}`);
                 ns.toast(`Server purchased: ${hostname}, RAM: ${this.current_ram_target}.`);
                 var rooted_servers = get_array_from_file(ns, "/data/rooted_servers.txt");
                 rooted_servers.push(hostname);
@@ -120,12 +120,17 @@ class ServerManager {
                         while (ns.getServerUsedRam(server_name) > 0) {
                             await ns.sleep(100);
                         }
-                        ns.killall(server_name);
-                        ns.deleteServer(server_name);
-                        var hostname = ns.purchaseServer(server_name, this.current_ram_target);
-                        ns.tprint(`Hostname ${hostname} upgraded, RAM: ${this.current_ram_target}.`)
-                        ns.toast(`Hostname ${hostname} upgraded, RAM: ${this.current_ram_target}.`)
-                        await ns.scp(this.bot_scripts, hostname);
+                        current_money = ns.getServerMoneyAvailable("home");
+                        if (current_money > cost) {
+                            ns.killall(server_name);
+                            ns.deleteServer(server_name);
+                            var hostname = ns.purchaseServer(server_name, this.current_ram_target);
+                            ns.tprint(`Hostname ${hostname} upgraded, RAM: ${this.current_ram_target}. Cost \$${get_shortened_number(ns, cost)}`)
+                            ns.toast(`Hostname ${hostname} upgraded, RAM: ${this.current_ram_target}.`)
+                            await ns.scp(this.bot_scripts, hostname);
+                        } else {
+                            ns.print(`WARN: Money decreased while waiting for server to complete scripts.`);
+                        }
                     } else {
                         this.status = `Waiting for amount \$${get_shortened_number(ns, amount)} to upgrade ${hostname} upgraded to RAM: ${this.current_ram_target}.`;
                         ns.print(this.status); 
