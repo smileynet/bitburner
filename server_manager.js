@@ -118,7 +118,7 @@ class ServerManager {
                     if (current_money > cost) {
                         ns.print(`Waiting for ${server_name} to complete currently running scripts.`)
                         while (ns.getServerUsedRam(server_name) > 0) {
-                            await ns.sleep(100);
+                            await ns.sleep(10);
                         }
                         current_money = ns.getServerMoneyAvailable("home");
                         if (current_money > cost) {
