@@ -7,5 +7,6 @@
     "relaysmtp",
     "sqlinject",
     "tprint"
-  ]
+  ],
+  "editor.detectIndentation": false
 }

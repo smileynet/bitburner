@@ -10,7 +10,7 @@ export function analyze_target(ns, target_server) {
 	//ns.print(`Analyzing ${target_server}...`);
 
 	var threads = 1; // For per unit calculation
-	var cores = 1; // Not worries about cores right now
+	var cores = 1; // Not worried about cores right now
 
 	var threads_needed = 0;
 	var time_needed = 0;

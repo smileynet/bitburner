@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"name": "bitburner",
+			"path": "."
+		}
+	],
+	"settings": {
+		"cSpell.words": [
+			"killall",
+			"tprint"
+		]
+	}
+}

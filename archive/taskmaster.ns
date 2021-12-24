@@ -1,0 +1,359 @@
+import { get_available_servers, get_valid_targets, prep_all_servers, read_file} from "utils.ns";
+import { analyze_target } from "analyzer.ns";
+import { do_server_scan_and_hack, max_hackable_ports } from "refresh_hack.ns";
+import { get_highest_current_server_ram } from "purchase_servers.ns"
+
+function do_weaken_security(ns, target_server, origin_server, threads) {
+    var current_script = "/botnet/weaken_security.ns";
+    var result = do_run_script(ns, current_script, target_server, origin_server, threads);
+    return result;
+}
+
+function do_grow_money(ns, target_server, origin_server, threads) {
+    var current_script = "/botnet/grow_money.ns";
+    var result = do_run_script(ns, current_script, target_server, origin_server, threads);
+    return result;
+}
+
+function do_hack_server(ns, target_server, origin_server, threads) {
+    var current_script = "/botnet/hack_server.ns";
+    var result = do_run_script(ns, current_script, target_server, origin_server, threads);
+    return result;
+}
+
+/** @param {NS} ns **/
+function do_run_script(ns, current_script, target_server, origin_server, threads) {
+    if (threads == null) {
+        threads = get_max_threads(ns, current_script, origin_server)
+    }
+    var available_ram = get_available_ram(ns, origin_server);
+    var max_threads = get_max_grow_threads(ns, origin_server);
+    var script_ram = ns.getScriptRam(current_script, origin_server)
+    
+    if (threads > 0) {
+        //ns.print(`Server ${origin_server} launching ${current_script} with ${threads} threads against ${target_server}.`)
+        var result = ns.exec(current_script, origin_server, threads, target_server);
+        if (result == 0) { // Server did not execute, likely already running task
+            //ns.print(`Server ${origin_server} is already running threads for this task!`)
+        }
+    } else {
+        debugger;
+        ns.tprint(`ERROR: Tried to run script with 0 threads!`);
+        ns.exit()
+    }
+    
+    if (result == 0 || result == false ) {
+        return false;
+    } else {
+        return threads;
+    }
+}
+
+function get_max_weaken_threads(ns, server_name, threads_needed) {
+    var current_script = "/botnet/weaken_security.ns";
+    var result = get_max_threads(ns, current_script, server_name, threads_needed);
+    return result;
+}
+
+function get_max_grow_threads(ns, server_name, threads_needed) {
+    var current_script = "/botnet/grow_money.ns";
+    var result = get_max_threads(ns, current_script, server_name, threads_needed);
+    return result;
+}
+
+function get_max_hack_threads(ns, server_name, threads_needed) {
+    var current_script = "/botnet/hack_server.ns";
+    var result = get_max_threads(ns, current_script, server_name, threads_needed);
+    return result;
+}
+
+/** @param {NS} ns **/
+export function get_max_threads(ns, current_script, server_name, threads_needed) {
+    var available_ram = get_available_ram(ns, server_name);
+    if (server_name == "home") {
+        var reserved_mem = 33;
+        available_ram = available_ram - reserved_mem;
+    }
+    var script_ram = ns.getScriptRam(current_script, server_name);
+    var threads = Math.floor(available_ram / script_ram);
+    if (threads_needed != null && threads > threads_needed) {
+        threads = threads_needed;
+    }
+    return threads
+}
+
+/** @param {NS} ns **/
+function get_available_ram(ns, server_name) {
+    var max_ram = ns.getServerMaxRam(server_name);
+    var used_ram = ns.getServerUsedRam(server_name);
+    var available_ram = max_ram - used_ram;
+    return available_ram;
+}
+
+/** 
+* @param {NS} ns
+* @param {string[]} available_servers Array of server names for servers that can be used for hacking.
+* @return {string} server_name or false
+*/
+function get_next_server(ns, servers_to_skip) {
+    var available_servers = get_available_servers(ns);
+    available_servers.push("home");
+    if (servers_to_skip == undefined) {
+        var servers_to_skip = [];
+    }	
+    for (const server_name of available_servers) {
+        var available_ram = get_available_ram(ns, server_name);
+        if (servers_to_skip.includes(server_name)) {
+            //ns.print(`Skipping ${server_name}`)
+            continue;
+        }
+        if (server_name == "home") {
+            var reserved_mem = 32;
+            available_ram = available_ram - reserved_mem;
+        }
+        if (available_ram > 2) {
+            return server_name;
+        }
+    }
+    return false;
+}
+
+export async function assign_jobs(ns, current_jobs) {
+    for (var i = 0; i < current_jobs.length; i++) {
+        var servers_to_skip = [];
+        var job = current_jobs[i];
+        if (job[`threads_needed`] > 0) {
+            var server_to_task = get_next_server(ns, servers_to_skip);
+            //ns.print(`Executing ${job['task']} against ${job['target']}, ${job['threads_needed']} threads needed.`)
+            while (server_to_task && job['threads_needed'] > 0) {
+                if (job['task'] == "weaken") {
+                    var threads_to_execute = get_max_weaken_threads(ns, server_to_task, job['threads_needed']);
+                    if (threads_to_execute > 0) {
+                        var result = do_weaken_security(ns, job['target'], server_to_task, threads_to_execute);
+                    } else {
+                        var result = false;
+                    }
+                } else if (job['task'] == "grow") {
+                    var threads_to_execute = get_max_grow_threads(ns, server_to_task, job['threads_needed']);
+                    if (threads_to_execute > 0) {
+                        var result = do_grow_money(ns, job['target'], server_to_task, threads_to_execute);
+                    }  else {
+                        var result = false;
+                    }
+                } else if (job['task'] == "hack") {
+                    var threads_to_execute = get_max_hack_threads(ns, server_to_task, job['threads_needed']);
+                    if (threads_to_execute > 0) {
+                        var result = do_hack_server(ns, job['target'], server_to_task, threads_to_execute);
+                    }  else {
+                        var result = false;
+                    }
+                }
+                if (result > 0) {
+                    job['threads_needed'] = job['threads_needed'] - threads_to_execute;
+                    ns.print(`Executed ${threads_to_execute} threads on ${server_to_task}. ${job['threads_needed']} threads remaining.`);
+                } else if (result == 0 || result == false || result == undefined) {
+                    servers_to_skip.push(server_to_task)
+                }
+                if (job['threads_needed'] > 0) {
+                    server_to_task = get_next_server(ns, servers_to_skip);
+                } else {
+                    }
+            }
+            if (job['threads_needed'] == 0) {
+                ns.print(`Task ${job['task']} successfully staged for ${job['target']}. next task ready at ${job['busy_until'].toLocaleTimeString()}`);
+                //ns.toast(`Task ${job['task']} successfully staged for ${job['target']}. next task ready at ${job['busy_until'].toLocaleTimeString()}`);
+            } else {
+                ns.print(`No more servers availble for task ${job['task']} on ${job['target']}. ${job['threads_needed']} threads still needed, waiting.`)
+                break;
+            }
+        }
+    }
+    
+    return current_jobs;
+}
+
+export async function update_jobs(ns, current_jobs) {
+    var current_time = new Date();
+    var current_jobs_copy = [...current_jobs]
+    for (var i = 0; i < current_jobs_copy.length; i++) {
+        var job = current_jobs_copy[i];
+        if (job['busy_until'] != null && job['busy_until'] < current_time) {
+            //ns.toast(`Job completed! ${job['task']} on ${job['target']}`);
+            ns.print(`Job completed! ${job['task']} on ${job['target']}. Next task: ${job['task']} with ${job['threads_needed']} threads.`);
+            delete current_jobs[i];
+            var new_job = analyze_target(ns, job['target']);
+            current_jobs[i] = new_job;
+        }
+    }
+    current_jobs.sort((firstItem, secondItem) => secondItem.growth - firstItem.growth);
+    return current_jobs;
+}
+
+export function get_idle_servers(ns) {
+    var available_servers = get_available_servers(ns);
+    var idle_servers = 0;
+    for (const server_name of available_servers) {
+        var used_ram = ns.getServerUsedRam(server_name);
+        if (used_ram == 0) {
+            var max_ram = ns.getServerMaxRam(server_name);
+            if (max_ram > 0) {
+                idle_servers = idle_servers + 1;
+            }
+        }
+    }
+    return idle_servers;
+}
+
+export async function display_updates(ns, current_jobs) {
+    
+    var pending_tasks = 0;
+    
+    var jobs_copy = [...current_jobs];
+    jobs_copy.sort((firstItem, secondItem) => firstItem.busy_until - secondItem.busy_until);
+    
+    ns.print(`Active jobs:`);
+    for (var job of jobs_copy) {
+        if (job['busy_until'] == undefined) {
+            pending_tasks = pending_tasks + 1;
+        } else {
+            ns.print(`${job['target']} current task: ${job['task']} - next task ready at ${job['busy_until'].toLocaleTimeString()}`);
+        }
+    }
+    ns.print(`Pending tasks: ${pending_tasks}`);
+    
+    var idle_servers = get_idle_servers(ns);
+    
+    ns.print(`Idle bot servers: ${idle_servers}`);
+}
+
+async function check_util_scripts(ns) {
+    var scripts_to_check = ["/status/hacking.ns"]; // "upgrade_hacknet.ns", "purchase_servers.ns", 
+    for (const script of scripts_to_check) {
+        if (ns.isRunning(script) == false) {
+            ns.exec(script, "home");
+            await ns.sleep(1000);
+        }
+    }
+}
+
+function get_hacking_targets(ns) {
+    var valid_targets = get_valid_targets(ns);
+    
+    var purchased_servers = [];
+    for (var i = 1; i < 26; i++) {
+        purchased_servers.push("hackserv-" + i);
+    }
+    
+    var hacking_targets = [];
+    
+    for (const server_name of valid_targets) {
+        if (ns.hasRootAccess(server_name) && !purchased_servers.includes(server_name)) {
+            var server_max_money = ns.getServerMaxMoney(server_name);
+            var server_growth = ns.getServerGrowth(server_name);
+            //ns.print(`${server_name} - Max money: ${ns.nFormat(server_max_money, '0,0')} Growth: ${server_growth}`)
+            var target = { 'name': server_name, 'max_money': server_max_money, 'growth': server_growth };
+            hacking_targets.push(target)
+        }
+    }
+    
+    return hacking_targets
+}
+
+function add_new_job_targets(ns, current_jobs) {
+    var hacking_targets = get_hacking_targets(ns)
+    for (const target_server of hacking_targets) {
+        var exists = false;
+        for (const job of current_jobs) {
+            if (job['target'] == target_server['name']) {
+                exists = true;
+            }
+        }
+        if (exists == false) {
+            var new_job = analyze_target(ns, target_server['name']);
+            ns.print(`New job added: ${new_job['task']} on ${new_job['target']}`)
+            current_jobs.push(new_job);
+        }
+    }
+    return current_jobs
+}
+
+async function check_for_refresh(ns, next_hackable_server_skill, next_port_count) {
+    var current_hacking_skill = ns.getHackingLevel();
+    var current_hackable_ports = max_hackable_ports(ns)
+    ns.print(`Next hackable server at skill: ${next_hackable_server_skill} current skill ${current_hacking_skill}`)
+    ns.print(`Number of ports required for next server: ${next_port_count} current hackable ports: ${current_hackable_ports}`)
+    if (next_hackable_server_skill != undefined && next_hackable_server_skill != false && next_hackable_server_skill < current_hacking_skill) {
+        ns.toast(`Hacking skill high enough to add additional servers! Refreshing!`)
+        ns.tprint(`Number of ports required for next server: ${next_port_count} Next hackable server at skill: ${next_hackable_server_skill}`)
+        await ns.spawn("taskmaster.ns");
+        [next_hackable_server_skill, next_port_count] = await do_server_scan_and_hack(ns);
+    }else if (next_hackable_server_skill != undefined && next_port_count != false && next_port_count <= current_hackable_ports) {
+        ns.toast(`Port opening tools high enough to add additional servers! Refreshing!`)
+        ns.tprint(`Number of ports required for next server: ${next_port_count} Next hackable server at skill: ${next_hackable_server_skill}`)
+        await ns.spawn("taskmaster.ns");
+        [next_hackable_server_skill, next_port_count] = await do_server_scan_and_hack(ns);
+    }
+    return [next_hackable_server_skill, next_port_count];
+}
+
+async function check_server_capacity(ns) {
+    var idle_servers = get_idle_servers(ns);
+    var purchase_servers_running = ns.isRunning("purchase_servers.ns");
+    if (purchase_servers_running == false && idle_servers == 0) {
+        var highest_current_server_ram = get_highest_current_server_ram(ns)
+        var current_money = ns.getServerMoneyAvailable("home");
+        var hacking_programs = [];
+        hacking_programs.push({'name': 'BruteSSH.exe', 'cost': 500000, 'max_server_ram': 4 })
+        hacking_programs.push({'name': 'FTPCrack.exe', 'cost': 1500000, 'max_server_ram': 8 })
+        hacking_programs.push({'name': 'relaySMTP.exe', 'cost': 5000000, 'max_server_ram': 16 })
+        hacking_programs.push({'name': 'HTTPWorm.exe', 'cost': 30000000, 'max_server_ram': 32 })
+        hacking_programs.push({'name': 'SQLInject.exe', 'cost': 250000000, 'max_server_ram': 64 })
+        for (const program of hacking_programs) {
+            if(ns.fileExists(program['name'], "home") == false && highest_current_server_ram >= program['max_server_ram']) {
+                ns.print(`Waiting for ${program['name']} before purchasing more servers.`);
+                if (current_money > program['cost']) {
+                    ns.tprint(`${program['name']} ready for purchase.`);
+                }
+                return;
+            }
+        }
+        var new_max_ram = highest_current_server_ram * 2;
+        ns.tprint(`Doubling max RAM target for purchased servers to ${new_max_ram}`);		
+        await ns.write("max_ram_target.txt", new_max_ram, "w");
+        ns.exec("purchase_servers.ns","home");	
+    }
+}
+
+/** @param {NS} ns **/
+export async function main(ns) {
+    ns.disableLog("disableLog");
+    ns.disableLog("getServerUsedRam");
+    ns.disableLog("getServerMaxRam");
+    ns.disableLog("getServerGrowth");
+    ns.disableLog("getServerMaxMoney");
+    ns.disableLog("getServerSecurityLevel");
+    ns.disableLog("getServerMinSecurityLevel");
+    ns.disableLog("getServerMoneyAvailable");
+    ns.disableLog("sleep");
+    ns.disableLog("exec");
+    
+    await prep_all_servers(ns)
+    
+    var next_hackable_server_skill = false;
+    var next_port_count = false;
+    
+    [next_hackable_server_skill, next_port_count] = await do_server_scan_and_hack(ns);
+    
+    var current_jobs = [];
+    
+    while (true) {
+        [next_hackable_server_skill, next_port_count] = await check_for_refresh (ns, next_hackable_server_skill, next_port_count);
+        await check_util_scripts(ns);
+        await check_server_capacity(ns);
+        add_new_job_targets(ns, current_jobs);
+        current_jobs = await update_jobs(ns, current_jobs);
+        current_jobs = await assign_jobs(ns, current_jobs);
+        await display_updates(ns, current_jobs);
+        await ns.sleep(1000);
+    }
+}
