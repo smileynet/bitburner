@@ -7,11 +7,22 @@ export class Scanner {
         this.known_servers = [];
         this.rooted_servers = ["home"];
         this.hacking_targets = [];
+        this.hacking_target_data = [];
+        this.previous_known_server_count = 0;
+        this.previous_rooted_server_count = 0;
+        this.previous_hacking_targets_count = 0;
         this.ns = ns;
         this.bot_scripts = ["/botnet/smart_hack.ns",
         "/botnet/grow_money.ns",
         "/botnet/hack_server.ns",
         "/botnet/weaken_security.ns"];
+    }
+
+    async main () {
+        while(true) {
+            await this.check_for_progress();
+            await this.ns.sleep(1000);
+        }      
     }
     
     async scan_and_root_servers() {
@@ -19,11 +30,29 @@ export class Scanner {
         await this.root_known_servers();
         // await this.reset_all_servers();   
         this.refresh_hacking_targets();
-        this.sort_hacking_targets_by_growth();   
-        await this.export_data()  
-        this.display_status()
+        this.sort_hacking_target_data_by_growth();   
+        await this.export_data();
+        this.display_status();     
+        this.display_change();
     }
-    
+
+    async check_for_progress() {
+        var ns = this.ns;
+        var current_hacking_skill = ns.getHackingLevel();
+        var current_hackable_ports = get_num_hackable_ports(ns);
+        if ((this.next_hackable_server_skill != false && this.next_hackable_server_skill < current_hacking_skill) || 
+        (this.next_port_count != false && this.next_port_count < current_hackable_ports)) {
+            ns.toast(`Additional servers are rootable!`);
+            ns.tprint(`Additional servers are rootable! Refreshing server lists!`);
+            this.previous_known_server_count = this.known_servers.length;
+            this.previous_rooted_server_count = this.rooted_servers.length;
+            this.previous_hacking_targets_count = this.hacking_targets.length;
+            this.next_hackable_server_skill = false;
+            this.next_port_count = false;
+            await this.scan_and_root_servers();
+        }
+    }
+
     scan_for_servers() {
         var new_servers = this.ns.scan("home");
         this.iterative_server_scan("home", new_servers);
@@ -134,25 +163,26 @@ export class Scanner {
         }
         
         for (const server_name of this.known_servers) {
-            if (ns.hasRootAccess(server_name) && !purchased_servers.includes(server_name)) {
+            if (ns.hasRootAccess(server_name) && !purchased_servers.includes(server_name) && !this.hacking_targets.includes(server_name)) {
                 var server_max_money = ns.getServerMaxMoney(server_name);
-                var server_growth = ns.getServerGrowth(server_name)
+                var server_growth = ns.getServerGrowth(server_name);
                 //ns.print(`${server_name} - Max money: ${ns.nFormat(server_max_money, '0,0')} Growth: ${server_growth}`)
                 if (server_max_money > 0) {
-                    this.hacking_targets.push({'name':server_name, 'max_money': server_max_money, 'growth': server_growth});
+                    this.hacking_targets.push(server_name);
+                    this.hacking_target_data.push({'name':server_name, 'max_money': server_max_money, 'growth': server_growth});
                 }
             }
         }
     }
     
-    sort_hacking_targets_by_max_money() {
-        this.hacking_targets.sort((firstItem, secondItem) => secondItem.growth - firstItem.growth);
-        this.hacking_targets.sort((firstItem, secondItem) => secondItem.max_money - firstItem.max_money);
+    sort_hacking_target_data_by_max_money() {
+        this.hacking_target_data.sort((firstItem, secondItem) => secondItem.growth - firstItem.growth);
+        this.hacking_target_data.sort((firstItem, secondItem) => secondItem.max_money - firstItem.max_money);
     }
     
-    sort_hacking_targets_by_growth() {
-        this.hacking_targets.sort((firstItem, secondItem) => secondItem.max_money - firstItem.max_money);
-        this.hacking_targets.sort((firstItem, secondItem) => secondItem.growth - firstItem.growth);
+    sort_hacking_target_data_by_growth() {
+        this.hacking_target_data.sort((firstItem, secondItem) => secondItem.max_money - firstItem.max_money);
+        this.hacking_target_data.sort((firstItem, secondItem) => secondItem.growth - firstItem.growth);
     }
     
     async export_data() {
@@ -173,7 +203,7 @@ export class Scanner {
         ns.tprint(`Next hackable server skill level: ${this.next_hackable_server_skill}. Current hacking skill level: ${player_hacking_skill}.`);
         ns.tprint("---------------------------------------------------------------------");
         ns.tprint(`Hackable server targets:`);
-        for (const target_server of this.hacking_targets) {
+        for (const target_server of this.hacking_target_data) {
             var name = target_server['name'];
             var name_padding = 15 - name.length;
             var growth = target_server['growth'];
@@ -181,6 +211,19 @@ export class Scanner {
             var max_money = get_shortened_number(ns, target_server['max_money']);
             ns.tprint(`   ${name} ${' '.repeat(name_padding)} Growth: ${growth}${' '.repeat(growth_padding)} Max money: \$${max_money}`)
         }
+        ns.tprint(``)
+        ns.tprint(`   Total: ${this.hacking_targets.length}`)
+        ns.tprint("---------------------------------------------------------------------");
+    }
+
+    display_change() {
+        var ns = this.ns;
+        var known_server_change = this.known_servers.length - this.previous_known_server_count;
+        var rooted_server_change = this.rooted_servers.length - this.previous_rooted_server_count;
+        var hacking_targets_change = this.hacking_targets.length - this.previous_hacking_targets_count;
+        ns.tprint(`Known servers increased by ${known_server_change}.`);
+        ns.tprint(`Rooted servers increased by ${rooted_server_change}.`);
+        ns.tprint(`Hacking targets increased by ${hacking_targets_change}.`);
         ns.tprint("---------------------------------------------------------------------");
     }
 }
@@ -190,5 +233,6 @@ export async function main(ns) {
     ns.disableLog("ALL");
     
     let scanner = new Scanner(ns);
-    await scanner.scan_and_root_servers();    
+    await scanner.scan_and_root_servers();
+    await scanner.main(); 
 }

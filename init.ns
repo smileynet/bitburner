@@ -8,10 +8,11 @@ export async function main(ns) {
     ns.rm("status_update_gang.txt");
     ns.rm("/data/");
 
-    await ns.write("all_gang_equip_status.txt", false, "w");
-    await ns.write("max_ram_target.txt", 2, "w");
+    //await ns.write("all_gang_equip_status.txt", false, "w");
+    //await ns.write("max_ram_target.txt", 2, "w");
 
-    var scripts_to_launch = ["update_cores.ns","gang_runner.ns","taskmaster.ns","status/custom_hud.js","upgrade_gang_equip.ns"];
+    var scripts_to_launch = ["update_cores.ns","scanner.js","taskmaster.js","server_manager.js","status/custom_hud.js",];
+    //,"gang_runner.ns","upgrade_gang_equip.ns"
     
     for(const script of scripts_to_launch) {
         ns.exec(script,"home");

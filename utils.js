@@ -1,3 +1,14 @@
+export async function wait_for_sufficient_money(ns, amount) {
+	ns.print(`Waiting for amount \$${get_shortened_number(ns, amount)}`);
+	ns.disableLog("getServerMoneyAvailable");	
+	var current_money = ns.getServerMoneyAvailable("home");
+	while (current_money < amount) {
+		ns.print(`Need \$${get_shortened_number(ns, amount)}. Have \$${get_shortened_number(ns, current_money)}`);
+		await ns.sleep(3000);
+		current_money = ns.getServerMoneyAvailable("home");
+	}
+}
+
 export function get_array_from_file(ns, filename) {
     var new_array = [];
     var file_exists = ns.fileExists(filename)
