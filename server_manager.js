@@ -1,11 +1,11 @@
 import {get_array_from_file, get_shortened_number,  get_idle_servers} from "utils.js";
 
 export class ServerManager {
-    constructor(ns) { 
+    constructor(ns, pause_to_buy_programs) { 
         this.ns = ns;
         this.minimum_server_ram = 2; // Minimum server size to purchase
         this.wait_for_idle = false ; // Set this to true to wait for purchased servers to finish running scripts before upgrading.
-        this.pause_to_buy_programs = false; // Hold on buying additional servers until exploit programs are bought based on RAM level.
+        this.pause_to_buy_programs = pause_to_buy_programs; // Hold on buying additional servers until exploit programs are bought based on RAM level.
         this.current_ram_target = 2;
         this.reminder_interval = 60; // How many seconds before purchase reminders.
         this.current_servers = ns.getPurchasedServers();
@@ -145,7 +145,8 @@ export class ServerManager {
 
     async manage_server_capacity() {
         var ns = this.ns;
-        if (this.idle_servers == 0) {            
+        if (this.idle_servers == 0) {    
+            ns.print(`Pause to buy programs: ${this.pause_to_buy_programs}`);
             if (this.pause_to_buy_programs) {
                 var player = ns.getPlayer();
                 var highest_current_server_ram = this.highest_current_server_ram;
@@ -157,14 +158,13 @@ export class ServerManager {
                         if(ns.fileExists(program['name'], "home") == false && highest_current_server_ram >= program['max_server_ram']) {
                             var prereq_to_purchase = program['name'];
                             var cost = program['cost'];
-                        }
-                        break;
+                            break;
+                        } 
                     }
                 }
-            }
-            
+            }            
             if(prereq_to_purchase == undefined) {
-                await this.purchase_server();
+                //await this.purchase_server();
             } else {
                 var current_money = ns.getServerMoneyAvailable("home"); 
                 if (current_money > cost) {
@@ -188,7 +188,12 @@ export class ServerManager {
 /** @param {NS} ns **/
 export async function main(ns) {
     ns.disableLog("ALL");
-    
-    let server_manager = new ServerManager(ns);
+
+    if(ns.args[0]) {
+        var pause_to_buy_programs = ns.args[0];  
+    } else {
+        var pause_to_buy_programs = true;
+    }
+    let server_manager = new ServerManager(ns, pause_to_buy_programs);
     await server_manager.main();    
 }

@@ -8,7 +8,7 @@ class Taskmaster {
         this.security_buffer = 2; // How much above minimum security to tolerate.
         this.reserved_mem = 32; // How much memory to leave free for user scripts.
         this.update_interval = 180 // How many seconds between printing updates to the terminal. Set to -1 to pass.
-        this.verbose_job_status = true; // Display a detailed status for each job during display updates.
+        this.verbose_job_status = false; // Display a detailed status for each job during display updates.
         this.next_hackable_server_skill = false;
         this.next_port_count = false;
         this.best_script_income = 0;
@@ -268,7 +268,7 @@ class Taskmaster {
                     } else {
                         job[`threads_needed`] = job[`threads_needed`] - threads_executed;
                         job['threads_executed'] = job['threads_executed'] + threads_executed;
-                        ns.print(`Executed ${threads_executed} ${job[`task`]} threads against ${job[`target_server`]} on ${attacking_server}. ${job['threads_needed']} threads remaining. Runtime: ${display_minutes_and_seconds(ns,job['time_needed'])}.`);
+                        ns.print(`${job[`target_server`]}: Executed ${threads_executed} ${job[`task`]} thr on ${attacking_server}, ${job['threads_needed']} remaining. Runtime: ${display_minutes_and_seconds(ns,job['time_needed'])}.`);
                         if (job[`threads_needed`] <= 0) {
                             var current_time = new Date();
                             job['busy_until'] = new Date(current_time.getTime() + job['time_needed']);
