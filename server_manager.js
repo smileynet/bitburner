@@ -1,9 +1,11 @@
-import {get_array_from_file, get_shortened_number} from "utils.js";
+import {get_array_from_file, get_shortened_number,  get_idle_servers} from "utils.js";
 
-class ServerManager {
+export class ServerManager {
     constructor(ns) { 
         this.ns = ns;
         this.minimum_server_ram = 2; // Minimum server size to purchase
+        this.wait_for_idle = false ; // Set this to true to wait for purchased servers to finish running scripts before upgrading.
+        this.pause_to_buy_programs = false; // Hold on buying additional servers until exploit programs are bought based on RAM level.
         this.current_ram_target = 2;
         this.reminder_interval = 60; // How many seconds before purchase reminders.
         this.current_servers = ns.getPurchasedServers();
@@ -36,18 +38,7 @@ class ServerManager {
     }
 
     get idle_servers() {
-        var ns = this.ns;
-        var idle_servers = 0;
-        for (const server_name of this.rooted_servers) {
-            var used_ram = ns.getServerUsedRam(server_name);
-            if (used_ram == 0) {
-                var max_ram = ns.getServerMaxRam(server_name);
-                if (max_ram > 0) {
-                    idle_servers = idle_servers + 1;
-                }
-            }
-        }
-        return idle_servers;
+        return  get_idle_servers(this.ns);
     }
 
     get highest_current_server_ram() {
@@ -83,7 +74,7 @@ class ServerManager {
         if (highest_current_server_ram > this.current_ram_target){
 			this.current_ram_target = highest_current_server_ram;
             ns.print(`Setting target to highest current server RAM level: ${highest_current_server_ram}.`)	
-		} else if (highest_current_server_ram == lowest_current_server_ram) {
+		} else if (highest_current_server_ram == lowest_current_server_ram && this.current_ram_target == highest_current_server_ram && this.current_servers.length == this.max_servers) {
 			this.current_ram_target = this.current_ram_target * 2;
 			ns.print(`All servers at current RAM level, doubling RAM target to ${this.current_ram_target}.`)
 		} 
@@ -96,19 +87,20 @@ class ServerManager {
             var cost = ns.getPurchasedServerCost(this.current_ram_target);
             var current_money = ns.getServerMoneyAvailable("home");
             if (current_money > cost) {
-                var hostname = ns.purchaseServer("hackserv-" + (this.current_servers.length + 1), this.current_ram_target);
+                var hostname = ns.purchaseServer("hackserv-" + (this.current_servers.length < 9 ? '0' : '') + (this.current_servers.length + 1), this.current_ram_target);
                 await ns.scp(this.bot_scripts, hostname);
                 this.current_servers = ns.getPurchasedServers();
                 ns.tprint(`Server purchased: ${hostname}, RAM: ${this.current_ram_target}. Cost \$${get_shortened_number(ns, cost)}`);
                 ns.toast(`Server purchased: ${hostname}, RAM: ${this.current_ram_target}.`);
-                var rooted_servers = get_array_from_file(ns, "/data/rooted_servers.txt");
+                var rooted_servers = this.rooted_servers;
                 rooted_servers.push(hostname);
                 await ns.write("/data/rooted_servers.txt", rooted_servers, "w");
             } else {
-                this.status = `Waiting for amount \$${get_shortened_number(ns, amount)} to purchase ${hostname} with RAM: ${this.current_ram_target}.`;
+                this.status = `Waiting for amount \$${get_shortened_number(ns, cost)} to purchase new server with RAM: ${this.current_ram_target}.`;
                 ns.print(this.status); 
             }
         } else {
+            this.current_servers.sort();
             for(const server_name of this.current_servers) {
                 var current_server_ram = ns.getServerMaxRam(server_name)
                 if (current_server_ram < this.current_ram_target) {
@@ -117,7 +109,7 @@ class ServerManager {
 	                var current_money = ns.getServerMoneyAvailable("home");
                     if (current_money > cost) {
                         ns.print(`Waiting for ${server_name} to complete currently running scripts.`)
-                        while (ns.getServerUsedRam(server_name) > 0) {
+                        while (this.wait_for_idle && ns.getServerUsedRam(server_name) > 0) {
                             await ns.sleep(10);
                         }
                         current_money = ns.getServerMoneyAvailable("home");
@@ -132,7 +124,7 @@ class ServerManager {
                             ns.print(`WARN: Money decreased while waiting for server to complete scripts.`);
                         }
                     } else {
-                        this.status = `Waiting for amount \$${get_shortened_number(ns, amount)} to upgrade ${hostname} upgraded to RAM: ${this.current_ram_target}.`;
+                        this.status = `Waiting for amount \$${get_shortened_number(ns, cost)} to upgrade next server to RAM: ${this.current_ram_target}.`;
                         ns.print(this.status); 
                     }                    
                     break;
@@ -153,25 +145,28 @@ class ServerManager {
 
     async manage_server_capacity() {
         var ns = this.ns;
-        if (this.idle_servers == 0) {
-            var highest_current_server_ram = this.highest_current_server_ram;
-            var current_money = ns.getServerMoneyAvailable("home"); 
-            var player = ns.getPlayer();
-            if (player.tor == false && highest_current_server_ram >= 4) {
-                    var prereq_to_purchase = "TOR"
-                    var cost = 200000
-            } else {
-                for (const program of this.hacking_programs) {
-                    if(ns.fileExists(program['name'], "home") == false && highest_current_server_ram >= program['max_server_ram']) {
-                        var prereq_to_purchase = program['name'];
-                        var cost = program['cost'];
+        if (this.idle_servers == 0) {            
+            if (this.pause_to_buy_programs) {
+                var player = ns.getPlayer();
+                var highest_current_server_ram = this.highest_current_server_ram;
+                if (player.tor == false && highest_current_server_ram >= 4) {
+                        var prereq_to_purchase = "TOR"
+                        var cost = 200000
+                } else {
+                    for (const program of this.hacking_programs) {
+                        if(ns.fileExists(program['name'], "home") == false && highest_current_server_ram >= program['max_server_ram']) {
+                            var prereq_to_purchase = program['name'];
+                            var cost = program['cost'];
+                        }
+                        break;
                     }
-                    break;
                 }
             }
+            
             if(prereq_to_purchase == undefined) {
                 await this.purchase_server();
             } else {
+                var current_money = ns.getServerMoneyAvailable("home"); 
                 if (current_money > cost) {
                     this.status = `${prereq_to_purchase} ready for purchase for \$${get_shortened_number(ns, cost)}.`;
                 } else {
@@ -186,7 +181,7 @@ class ServerManager {
     }
 
     display_updates() {
-        ns.tprint(`--- ${this.status} ---`);
+        this.ns.tprint(`--- ${this.status} ---`);
     }
 }
 

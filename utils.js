@@ -1,4 +1,15 @@
-export async function wait_for_sufficient_money(ns, amount) {
+export function display_minutes_and_seconds(ns, millis) {
+    var minutes = Math.floor(millis / 60000);
+    var seconds = ((millis % 60000) / 1000).toFixed(0);
+    if (minutes > 0) {
+            return ns.nFormat(minutes,'0,0') + " minute" + (minutes > 1 ? 's' : '') + " and " + (seconds < 10 ? '0' : '') + seconds + " seconds.";
+    } else {
+        return (seconds < 10 ? '0' : '') + seconds + " seconds.";
+    }
+    
+}
+
+export async function wait_for_sufficient_money(ns, amount) { // this may no longer be in use
 	ns.print(`Waiting for amount \$${get_shortened_number(ns, amount)}`);
 	ns.disableLog("getServerMoneyAvailable");	
 	var current_money = ns.getServerMoneyAvailable("home");

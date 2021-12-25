@@ -17,3 +17,16 @@ export function inject(ns, code) {
     output += ` onmouseover="${code} document.getElementById('${id}').remove();"></div>`
     ns.tprint(output);
 }
+
+
+export async function main(ns) {
+    /**
+     * @type {Document}
+     */
+    const doc = eval("document");
+
+    /**
+     * @type {HTMLTableSectionElement}
+     */
+    const sidebarTableBody = doc.getElementsByClassName("MuiTableBody-root")[0];
+    // ... and so on

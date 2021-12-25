@@ -16,6 +16,7 @@ export class Scanner {
         "/botnet/grow_money.ns",
         "/botnet/hack_server.ns",
         "/botnet/weaken_security.ns"];
+        this.faction_servers = ["CSEC", "avmnite-02h", "I.I.I.I", "run4theh111z","The-Cave"]
     }
 
     async main () {
@@ -30,7 +31,8 @@ export class Scanner {
         await this.root_known_servers();
         // await this.reset_all_servers();   
         this.refresh_hacking_targets();
-        this.sort_hacking_target_data_by_growth();   
+        this.sort_hacking_target_data_by_growth();
+        //this.sort_hacking_target_data_by_max_money();
         await this.export_data();
         this.display_status();     
         this.display_change();
@@ -214,6 +216,14 @@ export class Scanner {
         ns.tprint(``)
         ns.tprint(`   Total: ${this.hacking_targets.length}`)
         ns.tprint("---------------------------------------------------------------------");
+        ns.tprint(`Faction servers rooted:`)
+        for (const server_name of this.rooted_servers) {
+            if (this.faction_servers.includes(server_name)) {
+                ns.tprint(`   ${server_name}`);
+            }
+        }
+        ns.tprint("---------------------------------------------------------------------");
+
     }
 
     display_change() {
