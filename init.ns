@@ -1,17 +1,17 @@
-/** @param {NS} ns **/
+import {read_file_as_number} from "utils.js";
 
+/** @param {NS} ns **/
 export async function main(ns) {
-    ns.rm("available_servers.txt");
-    ns.rm("current_target.txt");
-    ns.rm("valid_targets.txt");
-    ns.rm("max_ram_target.txt");
-    ns.rm("status_update_gang.txt");
+    var previous_best_script_income = read_file_as_number (ns, "/data/best_script_income.txt");
+    var previous_best_script_exp_gain = read_file_as_number (ns, "/data/best_script_exp_gain.txt");
+    var current_time = new Date();    
+    output = `${current_time} - best script income: ${previous_best_script_income} best script xp gain: ${previous_best_script_exp_gain}`
+    await ns.write("/records/script_gains.txt", output, "a");
     ns.rm("/data/");
 
     //await ns.write("all_gang_equip_status.txt", false, "w");
-    //await ns.write("max_ram_target.txt", 2, "w");
 
-    var scripts_to_launch = ["update_cores.ns","scanner.js","taskmaster.js","server_manager.js","status/custom_hud.js",];
+    var scripts_to_launch = ["update_cores.ns","scanner.js","taskmaster.js","server_manager.js","hud.js",];
     //,"gang_runner.ns","upgrade_gang_equip.ns"
     
     for(const script of scripts_to_launch) {

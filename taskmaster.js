@@ -28,7 +28,7 @@ class Taskmaster {
             this.assign_jobs();
             if (current_interval >= this.update_interval) {
                 this.display_job_updates();
-                this.display_skill_updates();
+                await this.display_skill_updates();
                 current_interval = 0;
             } else {
                 current_interval = current_interval + 1;
@@ -321,7 +321,7 @@ class Taskmaster {
         }
     }
 
-    display_skill_updates() {
+    async display_skill_updates() {
         var ns = this.ns;
         var current_hacking_skill = ns.getHackingLevel();
         var current_hackable_ports = get_num_hackable_ports(ns);
@@ -329,9 +329,11 @@ class Taskmaster {
         var script_exp_gain = ns.getScriptExpGain();
         if (this.best_script_income < script_income) {
             this.best_script_income = script_income;
+            await ns.write("/data/best_script_income.txt", this.best_script_income, "w");
         }
         if (this.best_script_exp_gain < script_exp_gain) {
             this.best_script_exp_gain = script_exp_gain;
+            await ns.write("/data/best_script_exp_gain.txt", this.best_script_exp_gain, "w");
         }
 
         //ns.tprint("---------------------------------------------------------------------");
@@ -340,7 +342,6 @@ class Taskmaster {
         ns.tprint(`Next hackable server at skill: ${this.next_hackable_server_skill}. current skill ${current_hacking_skill}.`);
         ns.tprint(`Number of ports required for next server: ${this.next_port_count}. current hackable ports: ${current_hackable_ports}.`);
         ns.tprint("---------------------------------------------------------------------");
-
     }
 }
 
