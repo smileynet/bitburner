@@ -1,10 +1,5 @@
 import {display_target_update, get_available_servers, display_minutes_and_seconds} from "utils.ns";
 
-export function get_available_servers(ns) {
-	var filename = "available_servers.txt"
-	var available_servers = get_array_from_file(ns, filename);
-	return available_servers;
-}
 export async function display_botnet_update(ns, result) {
 		await display_target_update(ns)
         ns.tprint(`${result['total_threads']} threads in use. Estimated execution time: ${display_minutes_and_seconds(result['time_to_sleep'])}`);

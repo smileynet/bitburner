@@ -1,6 +1,6 @@
 /** @param {NS} ns **/
 
-import { wait_for_sufficient_money } from "utils.ns";
+import { wait_for_sufficient_money } from "utils.js";
 
 export async function main(ns) {
 	ns.disableLog("disableLog");

@@ -1,5 +1,3 @@
-import {get_current_money} from "utils.ns";
-
 function get_equipment_list(ns) {
 	var equipment_list = ns.gang.getEquipmentNames();
 	var stats = ["hack", "str", "def", "dex", "agi", "cha"];
@@ -23,7 +21,7 @@ function get_equipment_list(ns) {
 }
 
 function do_buy_equip_for_member(ns, member, item) {
-	var current_money = get_current_money(ns);
+	var current_money = ns.getServerMoneyAvailable("home");
 	var item_cost = ns.gang.getEquipmentCost(item)
 	if (item_cost < current_money) {
 		var result = ns.gang.purchaseEquipment(member, item);
@@ -95,10 +93,7 @@ async function write_equip_status_to_file(ns, status) {
 
 /** @param {NS} ns **/
 export async function main(ns) {
-	ns.disableLog("disableLog");
-	ns.disableLog("sleep");
-	ns.disableLog("getServerMoneyAvailable");
-	ns.disableLog("gang.purchaseEquipment");
+	ns.disableLog("ALL");;
 
 	if (ns.gang.inGang() == false) {
 		ns.tprint(`Not currently in a gang! Exiting.`);
@@ -110,7 +105,7 @@ export async function main(ns) {
 	while (true) {
 		var equip_result = do_buy_best_equip_for_members(ns);
 		var aug_result = do_buy_augs_for_members(ns);
-		if (equip_result == false || aug_result == false || get_current_money(ns) < min_cash_on_hand) {
+		if (equip_result == false || aug_result == false || ns.getServerMoneyAvailable("home") < min_cash_on_hand) {
 			var all_equip_purchased = false;
 		} else {
 			all_equip_purchased = true;

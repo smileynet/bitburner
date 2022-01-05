@@ -18,15 +18,22 @@ export function inject(ns, code) {
     ns.tprint(output);
 }
 
+"Activate debug mode, copy selector for the button, and in the (real) terminal, run "
+const crimeButton = $('{copied selector here}');
+const numberOfSeconds = 3;
+setInterval(() => crimeButton.click(), 1000 * numberOfSeconds);
 
-export async function main(ns) {
-    /**
-     * @type {Document}
-     */
-    const doc = eval("document");
 
-    /**
-     * @type {HTMLTableSectionElement}
-     */
-    const sidebarTableBody = doc.getElementsByClassName("MuiTableBody-root")[0];
-    // ... and so on
+Weaken to min, while(true) weaken('joesguns')  all you need
+Or weaken to min first, then grow to max, for a whiletrue grow
+But using any and all threads available for max gains
+
+
+
+
+var homicide_chance = ns.getCrimeChance("Homicide");
+var min_chance = 0.9
+if (homicide_chance < min_chance) {
+	ns.tprint(`Homicide chance is below ${min_chance * 100}%. Go train more!`);
+	return;
+}

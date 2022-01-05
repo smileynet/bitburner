@@ -22,9 +22,14 @@ export async function main(ns) {
 
     pathToTarget.forEach(server=> output += " connect " + server + ";");
 
-    const terminalInput = document.getElementById("terminal-input");
+    const doc = eval("document")
+    const terminalInput = doc.getElementById("terminal-input");
     terminalInput.value=output;
     const handler = Object.keys(terminalInput)[1];
     terminalInput[handler].onChange({target:terminalInput});
     terminalInput[handler].onKeyDown({keyCode:13,preventDefault:()=>null});
+}
+
+export function autocomplete(data, args) {
+    return ["CSEC", "avmnite-02h", "I.I.I.I", "run4theh111z","The-Cave","powerhouse-fitness"]; // This script    autocompletes the list of servers.
 }

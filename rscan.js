@@ -59,7 +59,7 @@ export async function main(ns) {
             onClick="(function()
             {
                 const terminalInput = document.getElementById('terminal-input');
-                terminalInput.value='home; run connect.js ${name}';
+                terminalInput.value='home; run rconnect.js ${name}';
                 const handler = Object.keys(terminalInput)[1];
                 terminalInput[handler].onChange({target:terminalInput});
                 terminalInput[handler].onKeyDown({keyCode:13,preventDefault:()=>null});
@@ -70,6 +70,7 @@ export async function main(ns) {
             ].join("");
     });
 
-    const list = document.getElementById("terminal");
+    const doc = eval("document")
+    const list = doc.getElementById("terminal");
     list.insertAdjacentHTML('beforeend',output);
 }

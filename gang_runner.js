@@ -1,4 +1,4 @@
-import {read_file} from "utils.ns";
+import {read_file} from "utils.js";
 
 function get_gang_wanted_gain_rate(ns) {
 	var gang_info = get_gang_info(ns);
@@ -161,7 +161,7 @@ function check_for_others_training_charisma(ns) {
 
 function decide_which_task(ns) {
 	var terrorism_ratio = 0;
-	var min_territory_level = 0.2; // percentage of total territory
+	//var min_territory_level = 0.2; // percentage of total territory
 
 	var above_min_readiness = is_above_min_chance_to_win_territory(ns);
 	var gang_wanted_gain_rate = get_gang_wanted_gain_rate(ns)
@@ -169,7 +169,7 @@ function decide_which_task(ns) {
 	var members = get_gang_members(ns);
 	var terrorism_members = 0;
 	var trafficking_members = 0;
-	var territory_held = get_current_territory(ns);
+	//var territory_held = get_current_territory(ns);
 
 	for (const member of members) {
 		var member_wanted_gain_rate = get_member_wanted_gain_rate(ns, member);
@@ -266,7 +266,7 @@ function is_above_min_chance_to_win_territory(ns) {
 		return true;
 	} else {
 		// ns.print(`We're the not strongest gang! Let's bide out time!`);
-		return highest_power_diff;
+		return false;
 	}
 }
 
@@ -281,22 +281,10 @@ function do_gang_warfare(ns) {
 	}
 }
 
-async function check_util_scripts(ns) {
-	var scripts_to_check = ["/status/gang.ns"]; // "upgrade_gang_equip.ns"
-	for (const script of scripts_to_check) {
-		if (ns.isRunning(script) == false) {
-			ns.exec(script, "home");
-			await ns.sleep(1000);
-		}
-	}
-}
-
 /** @param {NS} ns **/
 export async function main(ns) {
-	ns.disableLog("disableLog");
-	ns.disableLog("sleep");
-	ns.disableLog("gang.setMemberTask");
-	ns.disableLog("gang.ascendMember"); // This is improperly labeled in the logs as 'ascend'.
+	ns.disableLog("ALL");
+	ns.exec("status/gang.ns","home");
 
 	if (ns.gang.inGang() == false) {
 		ns.tprint(`Not currently in a gang! Exiting.`);
@@ -306,7 +294,6 @@ export async function main(ns) {
 	//do_reset_all_member_tasks(ns)
 
 	while (true) {
-		await check_util_scripts(ns);
 		await do_full_recruitement(ns);
 		do_ascend_members(ns);
 		await do_gang_task_management(ns);

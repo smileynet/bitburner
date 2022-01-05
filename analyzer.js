@@ -89,3 +89,7 @@ export async function main(ns) {
 		await analyze_target(ns, target_server)
 	}
 }
+
+export function autocomplete(data, args) {
+    return [...data.servers]; // This script    autocompletes the list of servers.
+}

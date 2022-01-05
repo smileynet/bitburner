@@ -1,8 +1,46 @@
+export function get_rooted_servers(ns) {
+    return get_array_from_file(ns, "/data/rooted_servers.txt");
+}
+
+export function get_idle_servers(ns) {
+    var idle_servers = 0;
+    var rooted_servers =  get_rooted_servers(ns);
+    for (const server_name of rooted_servers) {
+        var used_ram = ns.getServerUsedRam(server_name);
+        if (used_ram == 0) {
+            var max_ram = ns.getServerMaxRam(server_name);
+            if (max_ram > 0) {
+                idle_servers = idle_servers + 1;
+            }
+        }
+    }
+    return idle_servers;
+}
+
+export function get_readable_time(ns, millis, verbose = true) {
+    var hours = Math.floor(millis / 3600000)
+    var minutes = Math.floor((millis % 3600000) / 60000);
+    var seconds = ((millis % 60000) / 1000).toFixed(0);
+    if (verbose) {
+        if (hours > 0 ) {
+            return ns.nFormat(hours, '0,0') + " hour" + (hours > 1 ? 's ' : ' ') + minutes + " minute" + (minutes > 1 ? 's' : '') + " and " + (seconds < 10 ? '0' : '') + seconds + " seconds";
+        } else if (minutes > 0) {
+            return ns.nFormat(minutes,'0,0') + " minute" + (minutes > 1 ? 's' : '') + " and " + (seconds < 10 ? '0' : '') + seconds + " seconds";
+        } else {
+            return (seconds < 10 ? '0' : '') + seconds + " seconds.";
+        }
+    } else {
+        return `${hours}:${minutes}:${ns.nFormat(seconds,'00')}`
+        //return (hours > 1 ? `${hours}:` : '') + (minutes > 1 ? `${minutes}:` : '') + `${seconds}`;
+    }
+    
+}
+
 export function display_minutes_and_seconds(ns, millis) {
     var minutes = Math.floor(millis / 60000);
     var seconds = ((millis % 60000) / 1000).toFixed(0);
     if (minutes > 0) {
-            return ns.nFormat(minutes,'0,0') + " minute" + (minutes > 1 ? 's' : '') + " and " + (seconds < 10 ? '0' : '') + seconds + " seconds.";
+            return ns.nFormat(minutes,'0,0') + " minute" + (minutes > 1 ? 's' : '') + " and " + (seconds < 10 ? '0' : '') + seconds + " seconds";
     } else {
         return (seconds < 10 ? '0' : '') + seconds + " seconds.";
     }
@@ -32,6 +70,17 @@ export function get_array_from_file(ns, filename) {
     return new_array
 }
 
+export function read_file_as_number (ns, filename) {
+	var file_exists = ns.fileExists(filename);
+	if (file_exists) {
+		var file_contents = ns.read(filename);
+	} else {
+		ns.tprint(`WARN: File ${filename} does not exist! Value returned as zero.`);
+        return 0;
+	}
+	return parseInt(file_contents);
+}
+
 export function read_file (ns, filename) {
 	var file_exists = ns.fileExists(filename);
 	if (file_exists) {
@@ -56,6 +105,11 @@ export function get_num_hackable_ports(ns) {
     // ns.print(`Max hackable ports: ${num_ports}`);
     
     return num_ports; 
+}
+
+export function get_percentage_string(ns, number) {
+    var percentage = ns.nFormat(number * 100,'0,0.00') + '%';
+    return percentage
 }
 
 export function get_shortened_number(ns, number) {
