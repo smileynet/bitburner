@@ -137,15 +137,20 @@ class Mastermind {
 			var faction_favor_gain = ns.getFactionFavorGain(faction_name)
 			ns.print(`${faction_name} current rep: ${ns.nFormat(faction_rep, '0')} needed: ${rep_required} aug: ${aug_name}`)
 			ns.print(`Estimated time to sufficient rep: ${get_readable_time(ns, time_needed * 1000)}`)
-			ns.print(`Curren faction favor: ${faction_favor}, gain on install: ${get_shortened_number(ns, faction_favor_gain)}`)
+			ns.print(`Current faction favor: ${faction_favor}, gain on install: ${get_shortened_number(ns, faction_favor_gain)}`)
 			if (!ns.isFocused() || !ns.isBusy()) { 
 				ns.print(`User aborted task. Exiting.`)
 				ns.exit();
 			}
-			if(time_needed > this.max_rep_wait_time) {
+			if(aug_name != "The Red Pill" && time_needed > this.max_rep_wait_time) {
 				ns.print(`Time needed for ${aug_name} greater than ${get_readable_time(this.max_rep_wait_time)}, skipping!`);
 				return false;
-			}
+			} else if (faction_favor_gain > 50) {
+                ns.print(`Reinstall recommended to increase faction favor!`);
+                if(aug_name == "The Red Pill") {
+                    ns.spawn('reload.js');
+                }
+            }
 		}
 		return true;
 	}	
