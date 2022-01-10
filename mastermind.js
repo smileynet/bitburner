@@ -33,8 +33,6 @@ class Mastermind {
 		this.the_end();
 	}
 
-	
-
 	aug_reload () {
 		// if augs > 1
 		// if in Daedelus, wait
@@ -463,7 +461,7 @@ class Mastermind {
 			ns.exec("gang_runner.js","home");
 			ns.exec("upgrade_gang_equip.js","home");
 		} else {
-			ns.print(`Gand already created!`)
+			ns.print(`Gang already created!`)
 		}
 	}
 
