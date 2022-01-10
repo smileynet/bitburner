@@ -1,5 +1,6 @@
 /** @param {NS} ns **/
 export async function main(ns) {
-    ns.tprint('1.0')
-    ns.tprint(ns.gang.canRecruitMember());
+    ns.gang.createGang("Slum Snakes")
+    ns.exec("gang_runner.js","home");
+    ns.exec("upgrade_gang_equip.js","home");
 }
