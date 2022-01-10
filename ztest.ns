@@ -1,4 +1,5 @@
 /** @param {NS} ns **/
 export async function main(ns) {
-    ns.tprint(ns.workForFaction("The Black Hand", "Hacking Contracts"));
+    ns.tprint('1.0')
+    ns.tprint(ns.gang.canRecruitMember());
 }
