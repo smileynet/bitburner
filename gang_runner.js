@@ -94,7 +94,7 @@ async function do_full_recruitement(ns) {
                     ns.tprint(`ERROR: Could not assign new member to training task.`)
                 }
             } else {
-                ns.tprint(`WARN: Could not recruit new member of name ${new_member_name}.`);
+                ns.print(`WARN: Could not recruit new member of name ${new_member_name}.`);
                 break;
             }
         }
