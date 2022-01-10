@@ -76,21 +76,29 @@ function set_default_training_task(ns, member) {
 
 async function do_full_recruitement(ns) {
 	while (ns.gang.canRecruitMember()) {
-		var member_count = get_member_count(ns);
+        var names = ["Neo","Chastity","Slippy","Boozy","Trigger","Dozer","Fanny","Lex","Lizard","Portia","Skinny","Maude","Mabel","Cherry"]
+		var member_names = ns.gang.getMemberNames();
+        var member_count = get_member_count(ns);
 		ns.print(`Current member count: ${member_count}`);
-		var new_member_name = "ganger-" + (member_count + 1);
-		var result = ns.gang.recruitMember(new_member_name);
-		if (result) {
-			ns.print(`New member ${new_member_name} recruited!`);
-			result = set_default_training_task(ns, new_member_name)
-			if (result) {
-				ns.print(`New memember assigned to training.`);
-			} else {
-				ns.tprint(`ERROR: Could not assign new member to training task.`)
-			}
-		} else {
-			ns.tprint(`ERROR: Could not recuit new member!`);
-		}
+        for (const new_member_name of names) {
+            if(member_names.includes(new_member_name)) {
+                continue;
+            }
+            var result = ns.gang.recruitMember(new_member_name);
+            if (result) {
+                ns.print(`New member ${new_member_name} recruited!`);
+                result = set_default_training_task(ns, new_member_name)
+                if (result) {
+                    ns.print(`New member assigned to training.`);
+                } else {
+                    ns.tprint(`ERROR: Could not assign new member to training task.`)
+                }
+            } else {
+                ns.tprint(`WARN: Could not recruit new member of name ${new_member_name}.`);
+                break;
+            }
+        }
+		
 		await ns.sleep(1000);
 	}
 	//ns.print(`Gang is full! Cannot recruit additional members.`);
