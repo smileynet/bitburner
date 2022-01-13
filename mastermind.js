@@ -461,7 +461,7 @@ class Mastermind {
 		}
 	}
 
-	async do_crime(goal, crime = "homicide", min_chance = 0.75) {
+	async do_crime(goal = "none", crime = "homicide", min_chance = 0.75) {
 		var ns = this.ns;
 		if (goal == "factions") {
 			ns.print(`Committing ${crime} to lower karma for faction invites.`)

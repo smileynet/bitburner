@@ -76,7 +76,7 @@ function set_default_training_task(ns, member) {
 
 async function do_full_recruitement(ns) {
 	while (ns.gang.canRecruitMember()) {
-        var names = ["Neo","Chastity","Slippy","Boozy","Trigger","Dozer","Fanny","Lex","Lizard","Portia","Skinny","Maude","Mabel","Cherry"]
+        var names = ["Neo","Cinnamon","Slippy","Chastity","Trigger","Dozer","Cherry","Lex","Lizard","Portia","Skinny","Maude","Mabel","Fanny"]
 		var member_names = ns.gang.getMemberNames();
         var member_count = get_member_count(ns);
 		ns.print(`Current member count: ${member_count}`);
@@ -177,12 +177,16 @@ function decide_which_task(ns) {
 	var members = get_gang_members(ns);
 	var terrorism_members = 0;
 	var trafficking_members = 0;
+    var starter_gang_size = 6;
 	//var territory_held = get_current_territory(ns);
 
 	for (const member of members) {
 		var member_wanted_gain_rate = get_member_wanted_gain_rate(ns, member);
 		var member_info = get_member_info(ns, member);
 		if (gang_wanted_gain_rate - member_wanted_gain_rate <= 0) { // If we have room to add wanted level
+            if (get_member_count(ns) < starter_gang_size) {
+                return "Strongarm Civilians";
+            }
 			if (above_min_readiness == false) { // Take territory if needed
 				return "Territory Warfare";
 			} else if (all_equip_purchased == false ){ // First make sure all members have full equipment
@@ -207,10 +211,13 @@ function decide_which_task(ns) {
 }
 
 async function do_manage_member_tasks(ns, member) {
-	var min_skill_level = 300;
+	var entry_skill_level = 100;
+    var min_skill_level = 300;
 	var min_asc_mult_level = 5;
 	var member_info = get_member_info(ns, member);
+    var starter_gang_size = 6;
 	
+    // TODO: Raise rep until gain is full
 	var next_task = "Train Combat";
 	if (member_info['str'] > min_skill_level && member_info['str_asc_mult'] > min_asc_mult_level) {
 		next_task = "Train Hacking";
@@ -218,8 +225,9 @@ async function do_manage_member_tasks(ns, member) {
 	if (member_info['hack'] > min_skill_level && member_info['hack_asc_mult'] > min_asc_mult_level) {
 		next_task = "Train Charisma";
 	}		
-	if (member_info['cha'] > min_skill_level && member_info['cha_asc_mult'] > min_asc_mult_level) {	
-		next_task = decide_which_task(ns);
+	if ((get_member_count(ns) < starter_gang_size && member_info['str'] > entry_skill_level) || (member_info['cha'] > min_skill_level && member_info['cha_asc_mult'] > min_asc_mult_level)) {	
+		// TODO: There may need to be a separate phase to get to full recruitment
+        next_task = decide_which_task(ns);
 	}
 	if (member_info['task'] != next_task) {
 		ns.print(`Assigning ${member} to ${next_task} from ${member_info['task']}`);
