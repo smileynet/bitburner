@@ -348,7 +348,15 @@ class Mastermind {
         if (this.installed_aug_count >= 30 && !player.factions.includes("Daedalus")) {
             ns.print(`Sufficient augs installed to join Daedalus.`)
             ns.print(`$100b and 2500 hacking (or 1500 of all combat stats) required to join.`)
-            await this.join_faction('Daedalus');
+            var current_stats = ns.getStats()
+            var current_money = ns.getServerMoneyAvailable("home");
+            if (current_stats["hacking"] < 2500) {
+                ns.print(`Insufficient hacking skill, moving on.`)
+            } else if (current_money < 100000000000) {
+                ns.print(`Insufficient cash, moving on.`)            
+            } else {
+                await this.join_faction('Daedalus');
+            }
         }
 	}
 
