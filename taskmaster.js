@@ -6,7 +6,7 @@ class Taskmaster {
         this.current_jobs = [];
         this.percent_to_steal = 0.40; // What percentage of money to steal per hack iteration
         this.security_buffer = 2; // How much above minimum security to tolerate.
-        this.reserved_mem = 70; // How much memory to leave free for user scripts.
+        this.reserved_mem = 74; // How much memory to leave free for user scripts.
         this.update_interval = 120; // How many seconds between printing updates to the terminal. Set to -1 to pass.
         this.verbose_job_status = false; // Display a detailed status for each job during display updates.
         this.max_xp_mode = max_xp_mode; // Set all workers to weaken joesguns.
