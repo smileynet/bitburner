@@ -33,7 +33,7 @@ class Mastermind {
             //await this.train_charisma(200);
             //await this.create_programs();
             await this.buy_augs();
-            this.aug_reload_check();
+            await this.aug_reload_check();
             this.the_end();
             await this.ns.sleep(300000)
         }
@@ -51,8 +51,10 @@ class Mastermind {
     get purchased_aug_count() {
         var ns = this.ns;
         var installed_augs = this.installed_aug_count;
-        var purchased_aug_count = ns.getOwnedAugmentations(true) - installed_augs;
-        ns.print(`Purchased aug count: ${purchased_aug_count}`);
+        var all_owned_augs = ns.getOwnedAugmentations(true).length + 1;
+
+        var purchased_aug_count = all_owned_augs - installed_augs;
+        ns.print(`Total augs: ${all_owned_augs} Purchased aug count: ${purchased_aug_count}`);
         return purchased_aug_count;
     }
 
@@ -61,11 +63,18 @@ class Mastermind {
         await this.run_and_wait_for_script("singularity/buy_all_augs.js")
     }
 
-	aug_reload_check() {
+	async aug_reload_check() {
         var ns = this.ns;
 	    if (this.purchased_aug_count >= this.aug_reload_count) {
             ns.print(`Purchased aug count is at or greater than the defined level: ${this.aug_reload_count}`)
-            ns.spawn('reload.js');
+            ns.exec("singularity/buy_all_augs.js","home");
+            while(ns.scriptRunning("singularity/buy_all_augs.js", "home")){
+                await ns.sleep(1000);
+            }
+            ns.print(`Reloading!`)
+            ns.tprint(`Reloading!`)
+            ns.toast(`Reloading!`)
+            ns.installAugmentations("init.js");
         }
 	}
 
