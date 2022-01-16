@@ -12,5 +12,6 @@ async function commit_crime (ns, crime = "homicide") {
 /** @param {NS} ns **/
 export async function main(ns) {
 	ns.disableLog("ALL");
+    ns.tail();
 	await commit_crime(ns);
 }
