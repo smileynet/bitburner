@@ -60,11 +60,12 @@ export async function main(ns) {
 	var money_available = ns.getServerMoneyAvailable("home");
 	var aug_price = ns.getAugmentationPrice("NeuroFlux Governor")
 	var player_factions = ns.getPlayer()['factions']
-	var preferred_faction = get_preferred_faction(ns, player_factions)
+	var preferred_faction = get_preferred_faction(ns, player_factions, true)
 	var rep_req = ns.getAugmentationRepReq("NeuroFlux Governor");
 	while (aug_price < money_available && ns.getFactionRep(preferred_faction) > rep_req) {
-		ns.tprint(`Buying NeuroFlux Governor from ${preferred_faction} for \$${get_shortened_number(ns, aug_price)}`)
-		ns.purchaseAugmentation(preferred_faction, "NeuroFlux Governor")
+		ns.tprint(`Buying NeuroFlux Governor from ${preferred_faction} for \$${get_shortened_number(ns, aug_price)}`);
+		ns.print(`Buying NeuroFlux Governor from ${preferred_faction} for \$${get_shortened_number(ns, aug_price)}`);
+		ns.print(`Purchase result: ${ns.purchaseAugmentation(preferred_faction, "NeuroFlux Governor")}`);
 		await ns.sleep(10)
 		money_available = ns.getServerMoneyAvailable("home");
 		aug_price = ns.getAugmentationPrice("NeuroFlux Governor")

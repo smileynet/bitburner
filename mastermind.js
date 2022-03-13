@@ -6,6 +6,7 @@ class Mastermind {
 		this.ns = ns;
 		this.use_gangs = true; // Form a gang for progression?
 		this.max_rep_wait_time = 43200 // Time to wait in seconds
+        this.aug_reload_count = 5; // How many augs to reload at (installs augs)
 		this.hacking_skill_target = 150;
 		this.stat_target = 75;
 		this.gang_karma_target = -54000;
@@ -19,26 +20,62 @@ class Mastermind {
 	}
 
 	async main() {
-		await this.red_pill();
-		await this.train_hacking();
-		await this.backdoor_faction_servers();
-		await this.join_factions();
-		await this.crime_stuff();
-		//this.boost_hacking_skill();
-		await this.acquire_rep_for_all_available_hacking_augs();
-		await this.acquire_rep_for_all_available_augs();
-		await this.train_combat_stats(200);
-		await this.train_charisma(200);
-		//await this.create_programs();
-		this.the_end();
+        while (true) {
+            await this.train_hacking();
+            await this.backdoor_faction_servers();
+            await this.join_factions();
+            await this.red_pill();
+            await this.crime_stuff();
+            //this.boost_hacking_skill();
+            await this.acquire_rep_for_all_available_hacking_augs();
+            await this.acquire_rep_for_all_available_augs();
+            //await this.train_combat_stats(200);
+            //await this.train_charisma(200);
+            //await this.create_programs();
+            await this.buy_augs();
+            await this.aug_reload_check();
+            this.the_end();
+            await this.ns.sleep(300000)
+        }
+		
 	}
 
-	
+    get installed_aug_count() {
+        var ns = this.ns;
+        var installed_augs = ns.getOwnedAugmentations(false);
+        var installed_aug_count = installed_augs.length + 1;
+        ns.print(`Installed aug count: ${installed_aug_count}`);
+        return installed_aug_count;
+    }
 
-	aug_reload () {
-		// if augs > 1
-		// if in Daedelus, wait
-		// else, if everything affordable is bought, reload
+    get purchased_aug_count() {
+        var ns = this.ns;
+        var installed_augs = this.installed_aug_count;
+        var all_owned_augs = ns.getOwnedAugmentations(true).length + 1;
+
+        var purchased_aug_count = all_owned_augs - installed_augs;
+        ns.print(`Total augs: ${all_owned_augs} Purchased aug count: ${purchased_aug_count}`);
+        return purchased_aug_count;
+    }
+
+    async buy_augs() {
+        // TODO: This is inefficient, need to be more deterministic about when to buy
+        await this.run_and_wait_for_script("singularity/buy_all_augs.js")
+    }
+
+	async aug_reload_check() {
+        var ns = this.ns;
+	    if (this.purchased_aug_count >= this.aug_reload_count) {
+            ns.print(`Purchased aug count is at or greater than the defined level: ${this.aug_reload_count}`)
+            ns.exec("singularity/buy_all_augs.js","home");
+            while(ns.scriptRunning("singularity/buy_all_augs.js", "home")){
+                await ns.sleep(1000);
+            }
+            ns.print(`Reloading!`)
+            ns.tprint(`Reloading!`)
+            ns.toast(`Reloading!`)
+            ns.installAugmentations("init.js");
+        }
 	}
 
 	the_end() {
@@ -52,11 +89,11 @@ class Mastermind {
 		var current_stats = ns.getStats() // TODO: Make this it's own script.
 		if (current_stats['hacking'] < 600) {
 			ns.kill("taskmaster.js","home")
-			ns.exec("taskmaster.js","home",1,"true");
+			ns.run("taskmaster.js",1,"true");
 			ns.print(`Shifting taskmaster to max xp mode.`)
 		} else {
 			ns.kill("taskmaster.js","home","true")
-			ns.exec("taskmaster.js","home");
+			ns.run("taskmaster.js");
 			ns.print(`Returning taskmaster to normal mode.`)
 		}
 	}
@@ -191,13 +228,17 @@ class Mastermind {
 	}
 
 	async backdoor_faction_servers() {
-		var ns = this.ns;
-		ns.run("singularity/backdoor_factions.js", 1);
-		ns.print(`Waiting for backdoor script to complete.`)
-		while(ns.scriptRunning("singularity/backdoor_factions.js", "home")){
+		await this.run_and_wait_for_script("singularity/backdoor_factions.js");
+	}
+
+    async run_and_wait_for_script(script) {
+        var ns = this.ns;
+        ns.run(script);
+		ns.print(`Waiting for ${script} to complete.`)
+		while(ns.scriptRunning(script, "home")){
 			await ns.sleep(1000);
 		}
-	}
+    }
 
 	async red_pill() {
 		var ns = this.ns;
@@ -213,8 +254,7 @@ class Mastermind {
 				ns.print(`The Red Pill is owned. Let's install it!`);
 			} else {
 				ns.print(`The Red Pill is installed! Let's end this!`);
-			}
-			
+			}	
 		}
 		// if in faction
 		// gain rep
@@ -256,6 +296,18 @@ class Mastermind {
 			return false;
 		}
 	}
+    
+    async join_faction(faction) {
+        var ns = this.ns;
+        var faction_invites = ns.checkFactionInvitations();
+			while(!faction_invites.includes(faction)) {
+				ns.print(`Waiting for faction invite from ${faction}`)
+				await ns.sleep(5000)
+				faction_invites = ns.checkFactionInvitations();
+			}
+			ns.joinFaction(faction);
+			ns.print(`Faction ${faction} joined.`);
+    }
 
 	async join_city_faction() {
 		var ns = this.ns;
@@ -273,14 +325,7 @@ class Mastermind {
 		var current_money = ns.getServerMoneyAvailable("home");
 		if (current_money > required_cash) {
 			this.travel_to(next_city_faction);
-			var faction_invites = ns.checkFactionInvitations();
-			while(!faction_invites.includes(next_city_faction)) {
-				ns.print(`Waiting for faction invite from ${next_city_faction}`)
-				await ns.sleep(5000)
-				faction_invites = ns.checkFactionInvitations();
-			}
-			ns.joinFaction(next_city_faction);
-			ns.print(`Faction ${next_city_faction} joined.`);
+			await this.join_faction(next_city_faction);
 		} else {
 			ns.print(`Insufficient money to join ${next_city_faction}, \$${get_shortened_number(ns,required_cash)} required.`)
 		}
@@ -299,6 +344,20 @@ class Mastermind {
 				ns.print(`Faction ${faction} joined.`);
 			}
 		}
+        var player = ns.getPlayer();
+        if (this.installed_aug_count >= 30 && !player.factions.includes("Daedalus")) {
+            ns.print(`Sufficient augs installed to join Daedalus.`)
+            ns.print(`$100b and 2500 hacking (or 1500 of all combat stats) required to join.`)
+            var current_stats = ns.getStats()
+            var current_money = ns.getServerMoneyAvailable("home");
+            if (current_stats["hacking"] < 2500) {
+                ns.print(`Insufficient hacking skill, moving on.`)
+            } else if (current_money < 100000000000) {
+                ns.print(`Insufficient cash, moving on.`)            
+            } else {
+                await this.join_faction('Daedalus');
+            }
+        }
 	}
 
 	async update_kills() {
@@ -419,7 +478,7 @@ class Mastermind {
 		}
 	}
 
-	async do_crime(goal, crime = "homicide", min_chance = 0.75) {
+	async do_crime(goal = "none", crime = "homicide", min_chance = 0.75) {
 		var ns = this.ns;
 		if (goal == "factions") {
 			ns.print(`Committing ${crime} to lower karma for faction invites.`)
@@ -460,10 +519,10 @@ class Mastermind {
 			ns.print(`Working to form gang!`)
 			await this.do_crime("gang");
 			ns.gang.createGang("Slum Snakes")
-			ns.exec("gang_runner.js","home");
-			ns.exec("upgrade_gang_equip.js","home");
+			ns.run("gang_runner.js");
+			ns.run("upgrade_gang_equip.js");
 		} else {
-			ns.print(`Gand already created!`)
+			ns.print(`Gang already created!`)
 		}
 	}
 

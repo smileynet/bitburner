@@ -1,0 +1,20 @@
+I have an api for easily making custom draggable html boxes/windows that could be used for prompt-like behavior. You still have to do your own dom manipulation to actually interact with what you create though (e.g. adding event listeners to buttons, reading the values of input fields, etc).
+//test.ns
+import {createBox} from "/API/box.ns"
+export async function main(ns) {
+    let box = createBox("Test Box", "<div class=g2><p>Test&nbspInput</p><p><input /></p></div><button>Do the thing</button>")
+}
+
+
+// Anticipate security growth from grow.
+ns.exec("weak.script", hHost, Math.ceil(0.08 * threads), hTarget);
+ns.exec("grow.script", hHost, Math.floor(0.92 * threads), hTarget);
+
+
+
+export function inject(ns, code) {
+    let id = '' + Math.random() + Math.random();
+    let output = `<div id="${id}" style="position:absolute; width: 100%; height:100%"`;
+    output += ` onmouseover="${code} document.getElementById('${id}').remove();"></div>`
+    ns.tprint(output);
+}
