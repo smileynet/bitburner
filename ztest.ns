@@ -1,6 +1,0 @@
-/** @param {NS} ns **/
-export async function main(ns) {
-    ns.gang.createGang("Slum Snakes")
-    ns.exec("gang_runner.js","home");
-    ns.exec("upgrade_gang_equip.js","home");
-}

@@ -16,13 +16,15 @@ export class Target {
     }
 
     get current_money() {
-        return this.ns.getServerMaxMoney(this.name);
+        return this.ns.getServerMoneyAvailable(this.name);
     }
 
     get next_task() {
+        this.ns.tprint(`this.current_security ${this.current_security} this.tgt_security ${this.tgt_security}`)
+        this.ns.tprint(`this.money_available ${this.current_money} this.max_money ${this.max_money}`)
         if (this.current_security > this.tgt_security) {
             return "weaken";
-        } else if (this.money_available < this.max_money) {
+        } else if (this.current_money < this.max_money) {
             return "grow";
         } else {
             return "hack";

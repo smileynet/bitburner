@@ -3,7 +3,6 @@ export class Bot {
         this.ns = ns;
         this.name = server_name;
         this.max_ram = ns.getServerMaxRam(server_name);
-        this.refresh();
         // TODO: validate bot
         // TODO: prep scripts
     }
@@ -14,9 +13,11 @@ export class Bot {
         return this.max_ram - used_ram;
     }
 
-    refresh() {
+    get available() {
         if (this.available_ram > 2) {
-            this.available = true;
+            return true;
+        } else {
+            return false;
         }
     }
 }

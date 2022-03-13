@@ -1,11 +1,12 @@
 export class Job {
-    constructor(server) {
-        this.server = server;
-        this.multipier = server.multipier;
+    constructor(target) {
+        this.target = target;
+        this.ns = target.ns;
+        this.multiplier = target.multiplier;
         this.update_task();
     }
 
-    update_task(task = this.server.next_task) {
+    update_task(task = this.target.next_task) {
         switch (task) {
             case "weaken":
                 this.task = new WeakenTask(this);
@@ -22,21 +23,39 @@ export class Job {
         }
     }
 
-    attack(bot) {
-        const max_threads = Math.floor(bot.available_ram / this.task.ram_cost(bot.name))
+    refresh() {
+        if (this.task.type != this.target.next_task) {
+            this.update_task();
+            // TODO: Log completed task
+        } else {
+            this.task.refresh()
+        }
+    }
+
+    ram_cost(bot_name) {
+        return this.ns.getScriptRam(this.task.script, bot_name);
+    }
+
+    async run(bot) {
+        const max_threads = Math.floor(bot.available_ram / this.ram_cost(bot.name))
         let threads_to_execute;
-        if (max_threads < this.task.threads_needed) {
-            bot.available = false;
+        if (max_threads < this.task.threads_remaining) {
             threads_to_execute = max_threads;
         } else {
-            threads_to_execute = this.task.threads_needed
+            threads_to_execute = this.task.threads_remaining
         }
+        this.ns.tprint(`max_threads ${max_threads} task threads: ${this.task.threads_remaining} threads_to_execute: ${threads_to_execute}`)
+        this.ns.tprint(`Job ${this.task.type} run on ${bot.name} with ${threads_to_execute} threads against ${this.target.name}`)
         if (threads_to_execute > 0) {
-            const result = this.ns.exec(this.task.script, bot.name, threads_to_execute, this.server.name);
+            if (!this.ns.fileExists(this.task.script, bot.name)) {
+                await this.ns.scp(this.task.script, bot.name)
+            }
+            const result = this.ns.exec(this.task.script, bot.name, threads_to_execute, this.target.name);
+            this.ns.tprint(`Result: ${result}`)
             if (result == 0) {
                 // TODO: handle result- server already running threads for this task
             } else {
-                this.threads_needed -= threads_to_execute;
+                this.task.threads_remaining -= threads_to_execute;
             }
         } else {
             // TODO: Error, zero threads
@@ -46,49 +65,42 @@ export class Job {
 
 class Task {
     constructor(job) {
-        this.job = job;
-        this.server = job.server;
+        this.target = job.target;
         this.refresh();
     }
 
     get updated_weaken_time() {
-        return this.server.weaken_time;
+        return this.target.weaken_time;
     }
 
     get updated_weaken_threads() {
-        return this.server.weaken_threads;
+        return this.target.weaken_threads;
     }
 
     refresh() {
-        if (this.task != job.server.next_task) {
-            this.job.update_task();
-            // TODO: Log completed task
-        } else {
-            this.time_needed = this.updated_time;
-            this.threads_remaining = this.updated_threads;
-            this.weaken_time = this.server.weaken_time;
-            this.weaken_threads = this.server.weaken_threads;
-        }
-    }
-
-    ram_cost(bot_name) {
-        return this.job.ns.getScriptRam(this.script, bot_name);
+        this.time_needed = this.updated_time;
+        this.threads_remaining = this.updated_threads;
+        this.weaken_time = this.target.weaken_time;
+        this.weaken_threads = this.target.weaken_threads;
     }
 }
 
 class WeakenTask extends Task {
-    constructor(job) {
-        this.task = "weaken";
-        this.script = "../botnet/weaken.js";
-        super(job);
+
+    get type() {
+        return "weaken"
+    }
+
+    get script() {
+        return "/botnet/weaken.js"
     }
 
     get updated_time() {
-        return this.server.weaken_time;
+        return this.target.weaken_time;
     }
 
     get updated_threads() {
-        return this.server.weaken_threads;
+        return this.target.weaken_threads;
     }
 
     get updated_weaken_time() {
@@ -101,33 +113,37 @@ class WeakenTask extends Task {
 }
 
 class GrowTask extends Task {
-    constructor(job) {
-        this.task = "grow";
-        this.script = "../botnet/grow.js";
-        super(job);
+    get type() {
+        return "grow"
+    }
+
+    get script() {
+        return "/botnet/grow.js"
     }
 
     get updated_time() {
-        return this.server.grow_time;
+        return this.target.grow_time;
     }
 
     get updated_threads() {
-        return this.server.grow_threads;
+        return this.target.grow_threads;
     }
 }
 
 class HackTask extends Task {
-    constructor(job) {
-        this.task = "hack";
-        this.script = "../botnet/hack.js";
-        super(job);
+    get type() {
+        return "hack"
+    }
+
+    get script() {
+        return "/botnet/hack.js"
     }
 
     get updated_time() {
-        return this.server.hack_time;
+        return this.target.hack_time;
     }
 
     get updated_threads() {
-        return this.server.hack_threads;
+        return this.target.hack_threads;
     }
 }
