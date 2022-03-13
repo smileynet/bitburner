@@ -36,22 +36,19 @@ export class Job {
         return this.ns.getScriptRam(this.task.script, bot_name);
     }
 
+    weaken_ram_cost(bot_name) {
+        return this.ns.getScriptRam(this.task.weaken_script, bot_name);
+    }
+
     async run(bot) {
         const max_threads = Math.floor(bot.available_ram / this.ram_cost(bot.name))
-        let threads_to_execute;
-        if (max_threads < this.task.threads_remaining) {
-            threads_to_execute = max_threads;
-        } else {
-            threads_to_execute = this.task.threads_remaining
-        }
+        const max_weaken_threads = Math.floor(bot.available_ram / this.weaken_ram_cost(bot.name))
+        const threads_to_execute = Math.max(max_threads, this.task.threads_remaining)
         this.ns.tprint(`max_threads ${max_threads} task threads: ${this.task.threads_remaining} threads_to_execute: ${threads_to_execute}`)
+        this.ns.tprint(`max_weaken_threads ${max_weaken_threads} weaken task threads: ${this.task.weaken_threads}`)
         this.ns.tprint(`Job ${this.task.type} run on ${bot.name} with ${threads_to_execute} threads against ${this.target.name}`)
         if (threads_to_execute > 0) {
-            if (!this.ns.fileExists(this.task.script, bot.name)) {
-                await this.ns.scp(this.task.script, bot.name)
-            }
-            const result = this.ns.exec(this.task.script, bot.name, threads_to_execute, this.target.name);
-            this.ns.tprint(`Result: ${result}`)
+            const result = await this.execute_script(bot.name, this.task.script, threads_to_execute, this.target.name);
             if (result == 0) {
                 // TODO: handle result- server already running threads for this task
             } else {
@@ -60,6 +57,13 @@ export class Job {
         } else {
             // TODO: Error, zero threads
         }
+    }
+
+    async execute_script(script, bot_name, threads, target) {
+        if (!this.ns.fileExists(script, bot_name)) {
+            await this.ns.scp(script, bot_name)
+        }
+        return this.ns.exec(script, bot_name, threads, target);
     }
 }
 

@@ -4,7 +4,6 @@ export class Bot {
         this.name = server_name;
         this.max_ram = ns.getServerMaxRam(server_name);
         // TODO: validate bot
-        // TODO: prep scripts
     }
 
     get available_ram() {
