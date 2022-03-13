@@ -20,7 +20,21 @@ export class BotMaster {
         }
 
         this.jobs.forEach(job => { job.refresh(); });
-        // TODO: Reconcile tasks running on bots currently
+        for (const bot of this.bots) {
+            const running_procs = this.ns.ps(bot.name);
+            for (const process of running_procs) {
+                if (process.args.length == 0) { continue; }
+                const target_server = process.args[0];
+                const matching_jobs = this.jobs.filter(job => job.target.name == target_server);
+                if (matching_jobs) {
+                    if (matching_jobs[0].task.script == process.filename) {
+                        matching_jobs[0].task.threads_remaining -= process.threads;
+                    } else if (matching_jobs[0].task.weaken_script == process.filename) {
+                        matching_jobs[0].weaken_threads -= process.threads;
+                    }
+                }
+            }
+        }
     }
 
     async run() {

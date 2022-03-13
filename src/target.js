@@ -20,8 +20,6 @@ export class Target {
     }
 
     get next_task() {
-        this.ns.tprint(`this.current_security ${this.current_security} this.tgt_security ${this.tgt_security}`)
-        this.ns.tprint(`this.money_available ${this.current_money} this.max_money ${this.max_money}`)
         if (this.current_security > this.tgt_security) {
             return "weaken";
         } else if (this.current_money < this.max_money) {

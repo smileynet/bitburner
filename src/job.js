@@ -77,6 +77,10 @@ class Task {
         return this.target.weaken_threads;
     }
 
+    get weaken_script() {
+        return "/botnet/weaken.js"
+    }
+
     refresh() {
         this.time_needed = this.updated_time;
         this.threads_remaining = this.updated_threads;
