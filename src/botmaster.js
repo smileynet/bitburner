@@ -28,7 +28,7 @@ export class BotMaster {
                 const matching_jobs = this.jobs.filter(job => job.target.name == target_server);
                 if (matching_jobs) {
                     if (matching_jobs[0].task.script == process.filename) {
-                        matching_jobs[0].task.threads_remaining -= process.threads;
+                        matching_jobs[0].task.task_threads -= process.threads;
                     } else if (matching_jobs[0].task.weaken_script == process.filename) {
                         matching_jobs[0].weaken_threads -= process.threads;
                     }
@@ -41,7 +41,7 @@ export class BotMaster {
         const available_bots = this.bots.filter(bot => bot.available);
         available_bots.sort((a, b) => b.available_ram - a.available_ram);
         for (const bot of available_bots) {
-            let active_jobs = this.jobs.filter(job => job.task.threads_remaining > 0);
+            let active_jobs = this.jobs.filter(job => job.task.task_threads > 0 || job.task.weaken_threads > 0);
             active_jobs.sort((a, b) => b.multiplier - a.multiplier);
             // this.ns.tprint(`active_jobs: ${active_jobs.length}`);
             while (bot.available && active_jobs.length > 0) {

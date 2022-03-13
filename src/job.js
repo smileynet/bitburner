@@ -42,21 +42,23 @@ export class Job {
 
     async run(bot) {
         const max_threads = Math.floor(bot.available_ram / this.ram_cost(bot.name))
-        const max_weaken_threads = Math.floor(bot.available_ram / this.weaken_ram_cost(bot.name))
-        const threads_to_execute = Math.max(max_threads, this.task.threads_remaining)
-        this.ns.tprint(`max_threads ${max_threads} task threads: ${this.task.threads_remaining} threads_to_execute: ${threads_to_execute}`)
-        this.ns.tprint(`max_weaken_threads ${max_weaken_threads} weaken task threads: ${this.task.weaken_threads}`)
+        let threads_to_execute = Math.min(max_threads, this.task.task_threads)
         this.ns.tprint(`Job ${this.task.type} run on ${bot.name} with ${threads_to_execute} threads against ${this.target.name}`)
         if (threads_to_execute > 0) {
             const result = await this.execute_script(bot.name, this.task.script, threads_to_execute, this.target.name);
-            if (result == 0) {
-                // TODO: handle result- server already running threads for this task
-            } else {
-                this.task.threads_remaining -= threads_to_execute;
+            if (result != 0) {
+                this.task.task_threads -= threads_to_execute;
             }
-        } else {
-            // TODO: Error, zero threads
         }
+        const max_weaken_threads = Math.floor(bot.available_ram / this.weaken_ram_cost(bot.name))
+        let threads_to_execute = Math.min(threads_to_execute, this.task.weaken_threads)
+        if (threads_to_execute > 0) {
+            const result = await this.execute_script(bot.name, this.task.weaken_script, threads_to_execute, this.target.name);
+            if (result != 0) {
+                this.task.weaken_threads -= threads_to_execute;
+            }
+        }
+
     }
 
     async execute_script(script, bot_name, threads, target) {
@@ -87,7 +89,7 @@ class Task {
 
     refresh() {
         this.time_needed = this.updated_time;
-        this.threads_remaining = this.updated_threads;
+        this.task_threads = this.updated_threads;
         this.weaken_time = this.target.weaken_time;
         this.weaken_threads = this.target.weaken_threads;
     }
