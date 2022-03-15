@@ -1,4 +1,4 @@
-import {get_num_hackable_ports, get_shortened_number} from "utils.js";
+import { get_num_hackable_ports, get_shortened_number } from "utils.js";
 
 export class Scanner {
     constructor(ns) {
@@ -13,19 +13,20 @@ export class Scanner {
         this.previous_hacking_targets_count = 0;
         this.ns = ns;
         this.bot_scripts = ["/botnet/smart_hack.ns",
-        "/botnet/grow_money.ns",
-        "/botnet/hack_server.ns",
-        "/botnet/weaken_security.ns"];
+            "/botnet/grow_money.ns",
+            "/botnet/hack_server.ns",
+            "/botnet/weaken_security.ns"
+        ];
         this.faction_servers = ["CSEC", "avmnite-02h", "I.I.I.I", "run4theh111z"]
     }
 
-    async main () {
-        while(true) {
+    async main() {
+        while (true) {
             await this.check_for_progress();
             await this.ns.sleep(1000);
-        }      
+        }
     }
-    
+
     async scan_and_root_servers() {
         this.scan_for_servers();
         await this.root_known_servers();
@@ -35,7 +36,7 @@ export class Scanner {
         //this.sort_hacking_target_data_by_max_money();
         this.sort_hacking_target_data_by_multiplied();
         await this.export_data();
-        this.display_status();     
+        this.display_status();
         this.display_change();
     }
 
@@ -45,8 +46,8 @@ export class Scanner {
         var current_hackable_ports = get_num_hackable_ports(ns);
         ns.print(`current hacking skill: ${current_hacking_skill} next hackable server skill ${this.next_hackable_server_skill}`);
         ns.print(`current port count: ${current_hackable_ports} next server port count: ${this.next_port_count}`);
-        if ((this.next_hackable_server_skill != false && this.next_hackable_server_skill < current_hacking_skill) || 
-        (this.next_port_count != false && this.next_port_count < current_hackable_ports)) {
+        if ((this.next_hackable_server_skill != false && this.next_hackable_server_skill < current_hacking_skill) ||
+            (this.next_port_count != false && this.next_port_count < current_hackable_ports)) {
             ns.toast(`Additional servers are rootable!`);
             ns.tprint(`Additional servers are rootable! Refreshing server lists!`);
             this.previous_known_server_count = this.known_servers.length;
@@ -62,7 +63,7 @@ export class Scanner {
         var new_servers = this.ns.scan("home");
         this.iterative_server_scan("home", new_servers);
     }
-    
+
     iterative_server_scan(origin_server, servers_to_scan) {
         var ns = this.ns;
         if (servers_to_scan.length == 0) {
@@ -80,9 +81,9 @@ export class Scanner {
             }
         }
     }
-    
+
     async root_known_servers() {
-        for(const server_name of this.known_servers) {
+        for (const server_name of this.known_servers) {
             var rooted = await this.root_server(server_name)
             if (rooted) {
                 if (!this.rooted_servers.includes(server_name) && server_name != "darkweb") { // TODO: Fix this with a RAM check instead
@@ -91,7 +92,7 @@ export class Scanner {
             }
         }
     }
-    
+
     async root_server(server_name) {
         var ns = this.ns;
         //ns.print(`Checking ${server_name}...`);
@@ -99,7 +100,7 @@ export class Scanner {
         var max_hackable_ports = get_num_hackable_ports(ns);
         var required_hacking_skill = ns.getServerRequiredHackingLevel(server_name);
         var ports_required = ns.getServerNumPortsRequired(server_name)
-        
+
         if (ns.hasRootAccess(server_name) == false) {
             if (required_hacking_skill <= player_hacking_skill) {
                 if (ports_required > max_hackable_ports) {
@@ -130,17 +131,18 @@ export class Scanner {
             return true;
         }
     }
-    
+
     run_exploits(server_name) {
         var ns = this.ns;
-        var programs = [{'name':"BruteSSH.exe",'function': ns.brutessh},
-        {'name':"FTPCrack.exe", 'function': ns.ftpcrack},
-        {'name':"relaySMTP.exe", 'function': ns.relaysmtp},
-        {'name':"HTTPWorm.exe", 'function': ns.httpworm},
-        {'name':"SQLInject.exe", 'function': ns.sqlinject},
-        {'name':"NUKE.exe", 'function': ns.nuke}]
-        for(const program of programs) {
-            if(ns.fileExists(program['name'], "home")) {
+        var programs = [{ 'name': "BruteSSH.exe", 'function': ns.brutessh },
+            { 'name': "FTPCrack.exe", 'function': ns.ftpcrack },
+            { 'name': "relaySMTP.exe", 'function': ns.relaysmtp },
+            { 'name': "HTTPWorm.exe", 'function': ns.httpworm },
+            { 'name': "SQLInject.exe", 'function': ns.sqlinject },
+            { 'name': "NUKE.exe", 'function': ns.nuke }
+        ]
+        for (const program of programs) {
+            if (ns.fileExists(program['name'], "home")) {
                 var result = program['function'](server_name);
                 if (result == false) {
                     ns.print(`WARN: Execution of ${program['name']} failed.`)
@@ -149,7 +151,7 @@ export class Scanner {
         }
         return result;
     }
-    
+
     async reset_all_servers() {
         var ns = this.ns;
         for (const server_name of this.rooted_servers) {
@@ -158,15 +160,15 @@ export class Scanner {
         }
         return true;
     }
-    
+
     refresh_hacking_targets() {
         var ns = this.ns;
-        
+
         var purchased_servers = [];
         for (var i = 1; i < 26; i++) { // TODO: make this dynamic based on actual names/ servers
             purchased_servers.push("hackserv-" + i);
         }
-        
+
         for (const server_name of this.known_servers) {
             if (ns.hasRootAccess(server_name) && !purchased_servers.includes(server_name) && !this.hacking_targets.includes(server_name)) {
                 var server_max_money = ns.getServerMaxMoney(server_name);
@@ -175,17 +177,17 @@ export class Scanner {
                 //ns.print(`${server_name} - Max money: ${ns.nFormat(server_max_money, '0,0')} Growth: ${server_growth}`)
                 if (server_max_money > 0) {
                     this.hacking_targets.push(server_name);
-                    this.hacking_target_data.push({'name':server_name, 'max_money': server_max_money, 'growth': server_growth, 'multiplied': multiplied});
+                    this.hacking_target_data.push({ 'name': server_name, 'max_money': server_max_money, 'growth': server_growth, 'multiplied': multiplied });
                 }
             }
         }
     }
-    
+
     sort_hacking_target_data_by_max_money() {
         this.hacking_target_data.sort((firstItem, secondItem) => secondItem.growth - firstItem.growth);
         this.hacking_target_data.sort((firstItem, secondItem) => secondItem.max_money - firstItem.max_money);
     }
-    
+
     sort_hacking_target_data_by_growth() {
         this.hacking_target_data.sort((firstItem, secondItem) => secondItem.max_money - firstItem.max_money);
         this.hacking_target_data.sort((firstItem, secondItem) => secondItem.growth - firstItem.growth);
@@ -196,7 +198,7 @@ export class Scanner {
         this.hacking_target_data.sort((firstItem, secondItem) => secondItem.growth - firstItem.growth);
         this.hacking_target_data.sort((firstItem, secondItem) => secondItem.multiplied - firstItem.multiplied);
     }
-    
+
     async export_data() {
         var ns = this.ns;
         await ns.write("/data/hacking_targets.txt", this.hacking_targets, "w");
@@ -205,7 +207,7 @@ export class Scanner {
         await ns.write("/data/next_hackable_server_skill.txt", this.next_hackable_server_skill, "w");
         await ns.write("/data/next_port_count.txt", this.next_port_count, "w");
     }
-    
+
     display_status() {
         var ns = this.ns;
         var player_hacking_skill = ns.getHackingLevel();
@@ -221,7 +223,7 @@ export class Scanner {
             var growth = target_server['growth'];
             var growth_padding = 6 - growth.toString().length;
             var max_money = get_shortened_number(ns, target_server['max_money']);
-            var max_money_padding = 8 - max_money.toString().length; 
+            var max_money_padding = 8 - max_money.toString().length;
             var multiplied = get_shortened_number(ns, (target_server['multiplied']));
             ns.tprint(`   ${name} ${' '.repeat(name_padding)} Growth: ${growth}${' '.repeat(growth_padding)} Max money: \$${max_money}${' '.repeat(max_money_padding)} Multiplied: ${multiplied}`)
         }
@@ -253,8 +255,8 @@ export class Scanner {
 /** @param {NS} ns **/
 export async function main(ns) {
     ns.disableLog("ALL");
-    
+
     let scanner = new Scanner(ns);
     await scanner.scan_and_root_servers();
-    await scanner.main(); 
+    await scanner.main();
 }

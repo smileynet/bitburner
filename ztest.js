@@ -1,7 +1,7 @@
-import { BotMaster } from "./src/botmaster.js";
+import { Scanner } from "/src/scanner.js";
 
 /** @param {NS} ns **/
 export async function main(ns) {
-    let botmaster = new BotMaster(ns);
-    await botmaster.run();
+    let scanner = new Scanner(ns);
+
 }

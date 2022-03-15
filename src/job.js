@@ -41,24 +41,26 @@ export class Job {
     }
 
     async run(bot) {
-        const max_threads = Math.floor(bot.available_ram / this.ram_cost(bot.name))
+        let max_threads = Math.floor(bot.available_ram / this.ram_cost(bot.name))
         let threads_to_execute = Math.min(max_threads, this.task.task_threads)
-        this.ns.tprint(`Job ${this.task.type} run on ${bot.name} with ${threads_to_execute} threads against ${this.target.name}`)
         if (threads_to_execute > 0) {
-            const result = await this.execute_script(bot.name, this.task.script, threads_to_execute, this.target.name);
+            const result = await this.execute_script(this.task.script, bot.name, threads_to_execute, this.target.name);
+            console.log(`Job ${this.task.type} run on ${bot.name} with ${threads_to_execute} threads against ${this.target.name}. Max threads ${max_threads} Task Threads: ${this.task.task_threads}}`)
             if (result != 0) {
                 this.task.task_threads -= threads_to_execute;
             }
         }
-        const max_weaken_threads = Math.floor(bot.available_ram / this.weaken_ram_cost(bot.name))
-        let threads_to_execute = Math.min(threads_to_execute, this.task.weaken_threads)
-        if (threads_to_execute > 0) {
-            const result = await this.execute_script(bot.name, this.task.weaken_script, threads_to_execute, this.target.name);
-            if (result != 0) {
-                this.task.weaken_threads -= threads_to_execute;
+        if (this.task.weaken_threads > 0) {
+            max_threads = Math.floor(bot.available_ram / this.weaken_ram_cost(bot.name));
+            threads_to_execute = Math.min(max_threads, this.task.weaken_threads);
+            if (threads_to_execute > 0) {
+                const result = await this.execute_script(this.task.weaken_script, bot.name, threads_to_execute, this.target.name);
+                console.log(`Job secondary weaken run on ${bot.name} with ${threads_to_execute} threads against ${this.target.name}. Max threads ${max_threads} Task Threads: ${this.task.weaken_threads}}.`)
+                if (result != 0) {
+                    this.task.weaken_threads -= threads_to_execute;
+                }
             }
         }
-
     }
 
     async execute_script(script, bot_name, threads, target) {

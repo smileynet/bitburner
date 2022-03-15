@@ -7,7 +7,7 @@ export class Target {
         this.min_security = ns.getServerMinSecurityLevel(server_name);
         this.tgt_security = this.min_security + security_buffer;
         this.growth = ns.getServerGrowth(server_name);
-        this.growth_money_mult = this.server_max_money * this.server_growth_level;
+        this.growth_money_mult = this.max_money * this.growth;
         // TODO: Validate target
     }
 
