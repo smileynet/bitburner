@@ -1,9 +1,9 @@
 import { Job } from "/src/job.js";
-import { Scanner } from "/src/scanner.js";
 
 export class BotMaster {
-    constructor(ns) {
-        this.scanner = new Scanner (ns);
+    constructor(ns, messenger, scanner) {
+        this.scanner = scanner;
+        this.messenger = messenger
         this.jobs = [];
         this.refresh(ns);
     }
@@ -13,17 +13,24 @@ export class BotMaster {
         this.targets = this.scanner.target_servers(ns);
         this.bots = this.scanner.bot_servers(ns);
 
+        let new_jobs = "";
         for (const target of this.targets) {
             if (this.jobs.filter(job => job.target.name == target.name).length == 0) {
                 this.jobs.push(new Job(target));
-                console.debug(`Job created for ${target.name}`);
+                let message = `New job created for ${target.name}\n`
+                console.debug(message);
+                new_jobs += message
             }
+        }
+
+        if (new_jobs != "") {
+            this.messenger.add_message('BotMaster jobs', message)
         }
 
         this.jobs.forEach(job => { job.refresh(); });
 
         let all_procs = {};
-        
+
         for (const bot of this.bots) {
             const running_procs = ns.ps(bot.name);
             for (const process of running_procs) {
@@ -31,7 +38,7 @@ export class BotMaster {
                 const target_server = process.args[0];
                 const matching_jobs = this.jobs.filter(job => job.target.name == target_server);
                 const proc_desc = `${target_server} ${matching_jobs[0].task.type}`
-                if(all_procs[proc_desc] == null) {
+                if (all_procs[proc_desc] == null) {
                     all_procs[proc_desc] = process.threads;
                 } else {
                     all_procs[proc_desc] += process.threads;
@@ -47,10 +54,11 @@ export class BotMaster {
         }
 
         console.debug(all_procs);
-        ns.tprint(`Current running threads:`)
+        let message = `Current running threads:\n`
         for (const [key, value] of Object.entries(all_procs)) {
-            ns.tprint(`  ${key} threads: ${value}`)
+            message += `  ${key} threads: ${value}\n`
         }
+        this.messenger.add_message('BotMaster threads', message)
     }
 
     async run(ns) {
@@ -74,7 +82,7 @@ export class BotMaster {
             type_jobs.sort((a, b) => b[sort_by] - a[sort_by]);
             console.debug(type_jobs);
             jobs_batch.push(...type_jobs);
-        })      
+        })
         console.debug(jobs_batch);
         console.log(`jobs_batch length: ${jobs_batch.length}`)
         return jobs_batch;
