@@ -13,17 +13,17 @@ export class BotMaster {
         this.targets = this.scanner.target_servers(ns);
         this.bots = this.scanner.bot_servers(ns);
 
-        let new_jobs = "";
+        let message = "";
         for (const target of this.targets) {
             if (this.jobs.filter(job => job.target.name == target.name).length == 0) {
                 this.jobs.push(new Job(target));
-                let message = `New job created for ${target.name}\n`
-                console.debug(message);
-                new_jobs += message
+                let event = `New job created for ${target.name} ${' '.repeat(15-target.name.length)} multiplier: ${target.growth_money_mult}\n`
+                console.debug(event);
+                message += event
             }
         }
 
-        if (new_jobs != "") {
+        if (message != "") {
             this.messenger.add_message('BotMaster jobs', message)
         }
 
@@ -54,7 +54,7 @@ export class BotMaster {
         }
 
         console.debug(all_procs);
-        let message = `Current running threads:\n`
+        message = `Current running threads:\n`
         for (const [key, value] of Object.entries(all_procs)) {
             message += `  ${key} threads: ${value}\n`
         }
@@ -75,10 +75,10 @@ export class BotMaster {
 
     create_jobs_batch(ns) {
         const sort_by = 'growth_money_mult'; // Alternatives: growth, money
-        const job_type_order = ["hack", "grow", "weaken"];
+        const job_type_order = ["hack", ["grow", "weaken"]];
         let jobs_batch = [];
         job_type_order.forEach(type => {
-            let type_jobs = this.jobs.filter(job => job.task.type == type && (job.task.task_threads > 0 || job.task.weaken_threads > 0));
+            let type_jobs = this.jobs.filter(job => type.includes(job.task.type) && (job.task.task_threads > 0 || job.task.weaken_threads > 0));
             type_jobs.sort((a, b) => b[sort_by] - a[sort_by]);
             console.debug(type_jobs);
             jobs_batch.push(...type_jobs);

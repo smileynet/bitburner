@@ -5,7 +5,8 @@ import { Player } from "/src/player.js";
 
 
 export class Scanner {
-    constructor(ns) {
+    constructor(ns, messenger) {
+        this.messenger = messenger;
         this.known_servers = [];
         this.player = new Player(ns);
         this.add_server(ns, "home");
@@ -17,10 +18,15 @@ export class Scanner {
         console.debug(this.known_servers);
         let rootable_servers = this.known_servers.filter(server => server.rooted != true && this.player.can_root(ns, server));
         console.debug(rootable_servers);
+        let message = ""
         rootable_servers.forEach(server => {
             server.root(ns);
-            // TODO: emit new target server
+            message += `  ${server.name}\n`
+
         })
+        if (message != "") {
+            this.messenger.add_message('Scanner new servers rooted:', message)
+        }
     }
 
     add_server(ns, server_name, parent_server = "home") {

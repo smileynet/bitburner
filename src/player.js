@@ -18,7 +18,6 @@ export class Player {
     }
 
     can_root(ns, server) {
-        console.debug(`can_root server: ${server}`)
         return (server.required_hacking <= this.hacking_skill(ns) &&
             server.required_ports <= this.num_hackable_ports(ns));
     }

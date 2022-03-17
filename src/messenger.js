@@ -8,7 +8,7 @@ export class Messenger {
     run(ns) {
         if (this.current_interval <= 0) {
             for (const message of this.messages) {
-                ns.tprint(`   ---Source: ${message[0]}---   \n${message[1]}`);
+                ns.tprint(`   ---Update: ${message[0]}---   \n${message[1]}`);
             }
             this.messages.clear();
             this.current_interval = this.base_interval;

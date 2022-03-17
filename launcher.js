@@ -7,7 +7,7 @@ import { PurchaseAgent } from "/src/purchaseagent.js";
 export async function main(ns) {
     ns.disableLog("ALL");
     let messenger = new Messenger();
-    let scanner = new Scanner(ns);
+    let scanner = new Scanner(ns, messenger);
     let botmaster = new BotMaster(ns, messenger, scanner);
     let purchase_agent = new PurchaseAgent(ns, messenger, scanner, 128);
     while (true) {
