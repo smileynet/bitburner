@@ -1,8 +1,14 @@
-import { PurchaseAgent } from "/src/purchaseagent.js";
+import { Messenger } from "/src/messenger.js";
+import { CorpRunner } from "/src/corprunner.js";
 
 /** @param {NS} ns **/
 export async function main(ns) {
-    let purchase_agent = new PurchaseAgent(ns);
-    purchase_agent.run(ns);
-
+    let messenger = new Messenger(ns);
+    let corprunner = new CorpRunner(ns, messenger);
+    let loop = true
+    while (loop) {
+        corprunner.run(ns);
+        await ns.sleep(1000);
+        loop = true;
+    }
 }

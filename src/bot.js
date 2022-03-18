@@ -2,13 +2,13 @@ export class Bot {
     constructor(ns, server_name) {
         this.ns = ns;
         this.name = server_name;
+        this.reserved_ram = 4
         this.max_ram = ns.getServerMaxRam(server_name);
-        // TODO: validate bot
     }
 
     get available_ram() {
         var used_ram = this.ns.getServerUsedRam(this.name);
-        // TODO: handle home
+        if (this.name == "home") { used_ram += this.reserved_ram }
         return this.max_ram - used_ram;
     }
 
