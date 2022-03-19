@@ -8,13 +8,15 @@ export class PurchaseAgent {
     }
 
     run(ns) {
-        this.purchase_hacking_programs(ns)
-        this.purchase_home_upgrades(ns)
-        if (this.current_servers(ns).length < this.max_servers) {
-            console.debug(`Under max purchased server limit, attempting purchase.`)
-            this.purchase_server(ns);
-        } else {
-            this.current_servers(ns).forEach(server => { this.replace_server(ns, server) })
+        if (!ns.fileExists('pause.txt')) {
+            this.purchase_hacking_programs(ns)
+            this.purchase_home_upgrades(ns)
+            if (this.current_servers(ns).length < this.max_servers) {
+                console.debug(`Under max purchased server limit, attempting purchase.`)
+                this.purchase_server(ns);
+            } else {
+                this.current_servers(ns).forEach(server => { this.replace_server(ns, server) })
+            }
         }
     }
 

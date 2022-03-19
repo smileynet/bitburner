@@ -7,7 +7,7 @@ export async function main(ns) {
     let corprunner = new CorpRunner(ns, messenger);
     let loop = true
     while (loop) {
-        corprunner.run(ns);
+        await corprunner.run(ns);
         await ns.sleep(1000);
         loop = true;
     }
