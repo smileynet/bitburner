@@ -12,6 +12,7 @@
 *.txt
 data/
 workspace.code-workspace
+old_bitburner
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs

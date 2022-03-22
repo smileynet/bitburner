@@ -1,4 +1,5 @@
 import { Job } from "/src/job.js";
+import Utils from "/src/utils.js";
 
 export class BotMaster {
     constructor(ns, messenger, scanner) {
@@ -17,7 +18,7 @@ export class BotMaster {
         for (const target of this.targets) {
             if (this.jobs.filter(job => job.target.name == target.name).length == 0) {
                 this.jobs.push(new Job(target));
-                let event = `New job created for ${target.name} ${' '.repeat(15-target.name.length)} multiplier: ${target.growth_money_mult}\n`
+                let event = `New job created for ${target.name} ${' '.repeat(20-target.name.length)} multiplier: ${Utils.pretty_num(target.growth_money_mult)}\n`
                 console.debug(event);
                 message += event
             }
