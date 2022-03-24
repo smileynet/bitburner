@@ -13,6 +13,7 @@
 data/
 workspace.code-workspace
 old_bitburner
+.creds*
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
