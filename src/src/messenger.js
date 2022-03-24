@@ -1,7 +1,7 @@
 export class Messenger {
     constructor(interval = 60) {
         this.messages = new Map();
-        this.base_interval = interval;
+        this.refresh_interval = interval;
         this.current_interval = interval;
     }
 
@@ -11,7 +11,7 @@ export class Messenger {
                 ns.tprint(`   ---Update: ${message[0]}---   \n${message[1]}`);
             }
             this.messages.clear();
-            this.current_interval = this.base_interval;
+            this.current_interval = this.refresh_interval;
         } else {
             this.current_interval--
         }
@@ -19,5 +19,13 @@ export class Messenger {
 
     add_message(source, message) {
         this.messages.set(source, message);
+    }
+
+    append_message(source, message) {
+        if (this.messages[source]) {
+            this.messages.set(source, this.messages[source] + message);
+        } else {
+            this.messages.set(source, message);
+        }
     }
 }

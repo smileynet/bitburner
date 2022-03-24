@@ -33,10 +33,6 @@ export class CorpRunner {
         return this.corp_api.getCorporation()
     }
 
-    get cities() {
-        return ["Sector-12", "Aevum", "Volhaven", "Chongqing", "New Tokyo", "Ishima"];
-    }
-
     get current_money() {
         return this.corp_api.getCorporation().funds
     }
@@ -208,7 +204,7 @@ export class CorpRunner {
 
     grow_division(ns) {
         for (const division of this.corp.divisions) {
-            for (const city of this.cities) {
+            for (const city of Utils.cities) {
                 if (!division.cities.includes(city) &&
                     this.corp_api.getExpandCityCost() < this.current_money) {
                     this.corp_api.expandCity(division.name, city)

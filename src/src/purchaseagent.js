@@ -20,12 +20,20 @@ export class PurchaseAgent {
         }
     }
 
-    current_servers(ns) {
-        return ns.getPurchasedServers();
+    funds_avail(ns, type) {
+        const items = {
+            purchased_server: { ratio: 0.5 },
+            hacking_program: { ratio: 1 },
+            home_ram: { ratio: 1 }
+        }
+
+        const ratio = Math.min(items[type], 1) // Ratio should not exceed 1
+        const current_money = ns.getServerMoneyAvailable("home");
+        return current_money * ratio;
     }
 
-    current_money(ns) {
-        return ns.getServerMoneyAvailable("home");
+    current_servers(ns) {
+        return ns.getPurchasedServers();
     }
 
     purchase_server(ns) {
@@ -34,7 +42,7 @@ export class PurchaseAgent {
             const hostname = ns.purchaseServer("hackserv-" + (this.current_servers(ns).length < 9 ? '0' : '') + (this.current_servers(ns).length + 1), ram_amount);
             const message = `${hostname} purchased with ${ram_amount} RAM.`
             this.scanner.add_server(ns, hostname);
-            this.messenger.add_message('PurchaseAgent Server Purchased:', message);
+            this.messenger.append_message('PurchaseAgent Server Purchased:', message);
             ns.toast(message);
         }
     }
@@ -54,7 +62,7 @@ export class PurchaseAgent {
 
     max_affordable_ram(ns) {
         let test_ram_amount = this.min_server_ram;
-        while (ns.getPurchasedServerCost(test_ram_amount) < this.current_money(ns)) {
+        while (ns.getPurchasedServerCost(test_ram_amount) < this.funds_avail(ns, 'purchased_server')) {
             var affordable_ram_amount = test_ram_amount;
             test_ram_amount *= 2;
         }
@@ -75,7 +83,7 @@ export class PurchaseAgent {
         let message = ""
         if (player.tor == false) {
             const tor_cost = 200000;
-            if (tor_cost < this.current_money(ns)) {
+            if (tor_cost < this.funds_avail(ns, 'hacking_program')) {
                 ns.purchaseTor();
                 let event = "  TOR purchased!\n"
                 ns.toast(event)
@@ -84,7 +92,7 @@ export class PurchaseAgent {
         } else {
             for (const program of hacking_programs) {
                 if (ns.fileExists(program.name, "home") == false) {
-                    if (program.cost < this.current_money(ns)) {
+                    if (program.cost < this.funds_avail(ns, 'hacking_program')) {
                         ns.purchaseProgram(program.name);
                         let event = `  ${program.name} purchased!\n`
                         ns.toast(event)
@@ -101,7 +109,7 @@ export class PurchaseAgent {
 
     purchase_home_upgrades(ns) {
         const ram_cost = ns.getUpgradeHomeRamCost();
-        if (ram_cost < this.current_money(ns)) {
+        if (ram_cost < this.funds_avail(ns, 'home_ram')) {
             ns.upgradeHomeRam();
             const event = `Home RAM upgraded!`
             ns.toast(event)

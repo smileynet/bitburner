@@ -15,6 +15,14 @@ export class Utils {
         });
         return item ? (num / item.value).toFixed(digits).replace(rx, "$1") + item.symbol : "0";
     }
+
+    static get cities() {
+        return ["Sector-12", "Aevum", "Volhaven", "Chongqing", "New Tokyo", "Ishima"];
+    }
+
+    static get player_skills() {
+        return ['hacking', 'strength', 'defense', 'dexterity', 'agility', 'charisma']
+    }
 }
 
 export default Utils;
