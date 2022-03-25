@@ -8,7 +8,7 @@ export class PurchaseAgent {
     }
 
     run(ns) {
-        if (!ns.fileExists('pause.txt')) {
+        if (!ns.fileExists('money.txt')) {
             this.purchase_hacking_programs(ns)
             this.purchase_home_upgrades(ns)
             if (this.current_servers(ns).length < this.max_servers) {

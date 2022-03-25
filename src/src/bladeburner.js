@@ -19,6 +19,14 @@ export class BladeBurner {
         this.refresh_action(ns);
     }
 
+    priority(ns) {
+        if (!ns.fileExists('money.txt')) {
+            return 'rank'
+        } else {
+            return 'money'
+        }
+    }
+
     refresh_stamina(ns) {
         if (this.high_stamina_level < 100) {
             this.low_stamina_level = Math.min(60, ns.bladeburner.getStamina()[1] - 20);
@@ -29,6 +37,7 @@ export class BladeBurner {
     refresh_action(ns) {
         if (this.current_interval <= 0) {
             const next_action = this.select_next_action(ns)
+            console.debug(next_action);
             let message = `Bladeburner next action: ${next_action.name} in ${next_action.city}\n`
             if (next_action.name == this.current_action && next_action.city == this.current_city) {
                 message += `Staying on current plan.\n`
@@ -70,16 +79,30 @@ export class BladeBurner {
         return skills
     }
 
-    get contracts() {
-        return ['Retirement', 'Bounty Hunter', 'Tracking']
+    get contracts() { // TODO: deprecated, refactor usage to get_actions(type)
+        return this.get_actions('Contracts')
     }
 
     get actions() {
-        return ['Training', 'Field Analysis', 'Recruitment', 'Diplomacy', 'Hyperbolic Regeneration Chamber', 'Incite Violence']
+        return this.get_actions('General')
     }
 
     get operations() {
-        return ['Investigation', 'Undercover Operation', 'Sting Operation', 'Raid', 'Stealth Retirement Operation', 'Assassination']
+        return this.get_actions('Operations')
+    }
+
+    get types() {
+        return ['Contracts', 'General', 'Operations', 'BlackOps']
+    }
+
+    get_actions(type) {
+        const actions = {
+            Contracts: ['Retirement', 'Bounty Hunter', 'Tracking'],
+            Operations: ['Investigation', 'Undercover Operation', 'Sting Operation', 'Raid', 'Stealth Retirement Operation', 'Assassination'],
+            BlackOps: ["Operation Typhoon", "Operation Zero", "Operation X", "Operation Titan", "Operation Ares", "Operation Archangel", "Operation Juggernaut", "Operation Red Dragon", "Operation K", "Operation Deckard", "Operation Tyrell", "Operation Wallace", "Operation Shoulder of Orion", "Operation Hyron", "Operation Morpheus", "Operation Ion Storm", "Operation Annihilus", "Operation Ultron", "Operation Centurion", "Operation Vindictus", "Operation Daedalus"],
+            General: ['Training', 'Field Analysis', 'Recruitment', 'Diplomacy', 'Hyperbolic Regeneration Chamber', 'Incite Violence']
+        }
+        return actions[type]
     }
 
     low_stamina(ns) {
@@ -123,6 +146,64 @@ export class BladeBurner {
         }
     }
 
+    get_next_available_black_op(ns) {
+        const type = 'BlackOps'
+        const current_rank = ns.bladeburner.getRank()
+        for (const action of this.get_actions(type)) {
+            const has_rank_required = ns.bladeburner.getBlackOpRank(action) <= current_rank
+            if (has_rank_required) {
+                const not_completed = ns.bladeburner.getActionCountRemaining(type, action) >= 1
+                if (not_completed) {
+                    const estimated_success = ns.bladeburner.getActionEstimatedSuccessChance(type, action)
+                    const estimated_success_avg = (estimated_success[0] + estimated_success[1]) / 2
+                    if (estimated_success_avg >= this.min_success_chance) {
+                        const time_needed = ns.bladeburner.getActionTime(type, action)
+                        const black_op = {
+                            type: type,
+                            name: action,
+                            time_needed: time_needed / 1000,
+                            city: 'none'
+                        }
+                        ns.tprint(`Attempting Black Op: ${action} Time needed: ${black_op.time_needed}`)
+                        return black_op
+                    }
+                }
+            }
+        }
+    }
+
+    get_best_action(ns, types) {
+        let best_choice = { type: 'General', name: 'Training', city: 'none', weighted_success: 0 }
+        for (const type of types) {
+            if (type == 'BlackOps') continue;
+            for (const action of this.get_actions(type)) {
+                const count = ns.bladeburner.getActionCountRemaining(type, action)
+                if (count <= 0) continue;
+                for (const city of Utils.cities) {
+                    ns.bladeburner.switchCity(city);
+                    const current_level = ns.bladeburner.getActionCurrentLevel(type, action)
+                    const rep_gain = ns.bladeburner.getActionRepGain(type, action, current_level)
+                    const action_time = ns.bladeburner.getActionTime(type, action)
+                    const rep_per_sec = rep_gain / action_time * 1000
+                    const estimated_success = ns.bladeburner.getActionEstimatedSuccessChance(type, action)
+                    const estimated_success_avg = (estimated_success[0] + estimated_success[1]) / 2
+                    const rep_per_sec_weighted = rep_per_sec * estimated_success_avg
+                    if (estimated_success_avg > this.min_success_chance &&
+                        rep_per_sec_weighted > best_choice.weighted_success) {
+                        best_choice.type = type;
+                        best_choice.name = action;
+                        best_choice.city = city;
+                        best_choice.weighted_success = rep_per_sec_weighted;
+                        if (best_choice.name == this.current_action && best_choice.city == this.current_city) {
+                            return best_choice;
+                        }
+                    }
+                }
+            }
+        }
+        return best_choice;
+    }
+
     select_next_action(ns) {
         if (ns.getPlayer().strength < 100) {
             return { type: 'General', name: 'Training', city: 'none' }
@@ -133,26 +214,21 @@ export class BladeBurner {
                 return { type: 'General', name: 'Field Analysis', city: 'none' }
             }
         } else {
-            let type = 'Contract'
-            for (const contract of this.contracts) {
-                const count = ns.bladeburner.getActionCountRemaining('Contract', contract)
-                if (count <= 0) continue;
-                let best_city = 'none'
-                let best_amount = this.min_success_chance
-                for (const city of Utils.cities) {
-                    ns.bladeburner.switchCity(city);
-                    const amount = ns.bladeburner.getActionEstimatedSuccessChance('Contract', contract)
-                    const avg = (amount[0] + amount[1]) / 2
-                    if (avg > best_amount) {
-                        if (contract == this.current_action && city == this.current_city) {
-                            return { type: type, name: contract, city: city }
-                        }
-                        best_city = city;
-                    }
-                    if (best_city != 'none') return { type: type, name: contract, city: city }
-                }
+            const black_op = this.get_next_available_black_op(ns)
+            console.debug(black_op)
+            if (black_op) {
+                this.current_interval = black_op.time_needed + 5;
+                return black_op;
             }
+            let types
+            if (this.priority(ns) == 'rank') {
+                types = this.types;
+            } else {
+                types = ['Contracts']
+            }
+            const next_action = this.get_best_action(ns, types)
+            console.debug(next_action)
+            return next_action
         }
-        return { type: 'General', name: 'Training', city: 'none' }
     }
 }
