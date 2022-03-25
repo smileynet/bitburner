@@ -27,7 +27,7 @@ export class PurchaseAgent {
             home_ram: { ratio: 1 }
         }
 
-        const ratio = Math.min(items[type], 1) // Ratio should not exceed 1
+        const ratio = Math.min(items[type].ratio, 1) // Ratio should not exceed 1
         const current_money = ns.getServerMoneyAvailable("home");
         return current_money * ratio;
     }
@@ -55,7 +55,7 @@ export class PurchaseAgent {
             const hostname = ns.purchaseServer(server_name, ram_amount);
             const message = `${hostname} upgraded to ${ram_amount} RAM.`
             this.scanner.add_server(ns, hostname);
-            this.messenger.add_message(`PurchaseAgent ${hostname} upgraded:`, message);
+            this.messenger.append_message(`PurchaseAgent upgraded:`, message);
             ns.toast(message);
         }
     }

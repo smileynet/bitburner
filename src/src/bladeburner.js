@@ -105,7 +105,6 @@ export class BladeBurner {
         const skills = this.skills(ns);
         skills.sort((a, b) => b.priority - a.priority);
         let i = 1
-        let purchased = true;
         for (i = 1; i < 1000; i++) {
             for (const skill of skills) {
                 const level = ns.bladeburner.getSkillLevel(skill.name)
@@ -115,7 +114,6 @@ export class BladeBurner {
                     ns.bladeburner.upgradeSkill(skill.name);
                     const message = `${skill.name} upgraded to ${ns.bladeburner.getSkillLevel(skill.name)}.\n`
                     this.messenger.append_message('BladeBurner skill upgrade', message)
-                    purchased = true;
                 } else {
                     const message = `Next skill upgrade: ${skill.name} cost: ${cost}\n`
                     this.messenger.append_message('BladeBurner skill upgrade', message)

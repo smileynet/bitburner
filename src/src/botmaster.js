@@ -14,18 +14,13 @@ export class BotMaster {
         this.targets = this.scanner.target_servers(ns);
         this.bots = this.scanner.bot_servers(ns);
 
-        let message = "";
         for (const target of this.targets) {
             if (this.jobs.filter(job => job.target.name == target.name).length == 0) {
                 this.jobs.push(new Job(target));
-                let event = `New job created for ${target.name} ${' '.repeat(20-target.name.length)} multiplier: ${Utils.pretty_num(target.growth_money_mult)}\n`
-                console.debug(event);
-                message += event
+                let message = `  ${target.name} ${' '.repeat(20-target.name.length)} multiplier: ${Utils.pretty_num(target.growth_money_mult)}\n`
+                this.messenger.append_message('BotMaster new jobs', message)
+                console.debug(message);
             }
-        }
-
-        if (message != "") {
-            this.messenger.add_message('BotMaster jobs', message)
         }
 
         this.jobs.forEach(job => { job.refresh(); });
@@ -54,12 +49,16 @@ export class BotMaster {
             }
         }
 
+        let message = ''
+
         console.debug(all_procs);
-        message = `Current running threads:\n`
         for (const [key, value] of Object.entries(all_procs)) {
-            message += `  ${key} threads: ${value}\n`
+            const event = `  ${key} threads: ${value}\n`
+            message += event
         }
+
         this.messenger.add_message('BotMaster threads', message)
+
     }
 
     async run(ns) {

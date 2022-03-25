@@ -22,8 +22,12 @@ export class Messenger {
     }
 
     append_message(source, message) {
-        if (this.messages[source]) {
-            this.messages.set(source, this.messages[source] + message);
+        if (this.messages.get(source)) {
+            if (this.messages.get(source) == message) {
+                console.debug(`Duplicate message: ${message}`);
+            } else {
+                this.messages.set(source, this.messages.get(source) + message);
+            }
         } else {
             this.messages.set(source, message);
         }
