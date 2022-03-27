@@ -52,9 +52,12 @@ export class PlayerManager {
                 this.add_task(ns, new PlayerTask(this.messenger, goal.priority, 'stat', this.basic_hacking, 'hacking'))
                 break;
             case 'bladeburner':
-                Utils.combat_stats.forEach(stat => {
-                    this.add_task(ns, new PlayerTask(this.messenger, goal.priority, 'stat', this.bladeburner_min_stats, stat))
-                })
+                if (!ns.getPlayer().inBladeburner) {
+                    Utils.combat_stats.forEach(stat => {
+                        this.add_task(ns, new PlayerTask(this.messenger, goal.priority, 'stat', this.bladeburner_min_stats, stat))
+                    })
+                    this.add_task(ns, new PlayerTask(this.messenger, goal.priority - 10, 'init_group', 100, 'bladeburner', () => ns.getPlayer().inBladeburner))
+                }
                 break;
             default:
                 ns.tprint('WARN: Unknown goal!')
@@ -89,6 +92,8 @@ class PlayerTask {
                 const message = `goal: ${this.value} current: ${ns.getPlayer()[this.subtype]} result: ${this.condition(ns.getPlayer()[this.subtype], this.value)}`
                 this.messenger.add_message(`PlayerTask ${this.type} ${this.subtype} update:`, message);
                 return this.condition(ns.getPlayer()[this.subtype], this.value)
+            case 'init_group':
+                return this.condition;
             default:
                 ns.tprint(`ERROR: Unknown type. ${JSON.stringify(this)}`)
         }
@@ -110,6 +115,8 @@ class PlayerTask {
             case 'stat':
                 PlayerHelper.train_stat(ns, this.subtype)
                 break;
+            case 'init_group':
+                PlayerHelper.init_group(ns, this.subtype)
             default:
                 ns.tprint(`ERROR: Unknown type. ${JSON.stringify(this)}`)
         }
@@ -173,6 +180,16 @@ class PlayerHelper {
                 result = this.train_at_gym(ns, stat)
         }
         ns.tprint(`Training ${stat} result: ${result}`)
+    }
+
+    static init_group(ns, group) {
+        switch (group) {
+            case 'bladeburner':
+                ns.bladeburner.joinBladeburnerDivision();
+                break;
+            default:
+                ns.tprint(`WARN: Unknown group: ${group}`)
+        }
     }
 }
 

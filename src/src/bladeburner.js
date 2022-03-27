@@ -39,7 +39,8 @@ export class BladeBurner {
             const next_action = this.select_next_action(ns)
             console.debug(next_action);
             let message = `Bladeburner next action: ${next_action.name} in ${next_action.city}\n`
-            if (next_action.name == this.current_action && next_action.city == this.current_city && next_action.type != 'BlackOps') {
+            if (next_action.name == this.current_action && next_action.city == this.current_city &&
+                next_action.type != 'BlackOps' && ns.bladeburner.getCurrentAction().type != 'idle') {
                 message += `Staying on current plan.\n`
             } else {
                 if (next_action.city != 'none') {
@@ -65,8 +66,8 @@ export class BladeBurner {
         const skills = [{ name: "Blade's Intuition", priority: 0.5 },
             { name: "Cloak", priority: 1.1 },
             { name: "Short-Circuit", priority: 1.1 },
-            { name: "Digital Observer", priority: 0.5 },
-            { name: "Tracer", priority: 0.7 },
+            { name: "Digital Observer", priority: 0.8 },
+            { name: "Tracer", priority: 0.8 },
             { name: "Overclock", priority: 1.1 },
             { name: "Reaper", priority: 1 },
             { name: "Evasive System", priority: 1 },
@@ -105,6 +106,20 @@ export class BladeBurner {
         return actions[type]
     }
 
+    get intel_actions() {
+        const intel_actions = [
+            { action: 'Field Analysis', type: 'General' },
+            { action: 'Tracking', type: 'Contracts' },
+            { action: 'Investigation', type: 'Operations' },
+            { action: 'Undercover Operation', type: 'Operations' },
+        ]
+        return intel_actions
+    }
+
+    is_intel_action(action) {
+        return this.intel_actions.filter(a => a.action === action).length > 0
+    }
+
     low_stamina(ns) {
         const current_stamina = ns.bladeburner.getStamina()[0];
         if (this.recovering) {
@@ -125,7 +140,14 @@ export class BladeBurner {
     }
 
     upgrade_skills(ns) {
-        const skills = this.skills(ns);
+        const all_skills = this.skills(ns);
+        const overclock_level = ns.bladeburner.getSkillLevel("Overclock")
+        let skills
+        if (overclock_level >= 90) {
+            skills = all_skills.filter(skill => skill.name != "Overclock")
+        } else {
+            skills = all_skills
+        }
         skills.sort((a, b) => b.priority - a.priority);
         let i = 1
         for (i = 1; i < 1000; i++) {
@@ -172,37 +194,80 @@ export class BladeBurner {
         }
     }
 
+    get_best_intel_action(ns) {
+        let best_choice = { type: 'General', name: 'Field Analysis', city: 'none' }
+        for (const item of this.intel_actions) {
+            choice = this.get_action_data(ns, item.action, item.type)
+            if (choice.estimated_success_avg > this.min_success_chance) {
+                best_choice = choice;
+            }
+        }
+
+        return best_choice
+    }
+
+    get_best_rank_action(ns) {
+        const rank_types = this.types.filter(type => type != 'BlackOps');
+        return this.get_best_action(ns, rank_types)
+    }
+
+    get_best_money_action(ns) {
+        const money_types = ['Contracts']
+        return this.get_best_action(ns, money_types)
+    }
+
+    get_action_data(ns, action, type) {
+        const max_intel_spread = 0.2
+        let action_data = { name: action, type: type }
+        action_data.count = ns.bladeburner.getActionCountRemaining(type, action)
+        action_data.current_level = ns.bladeburner.getActionCurrentLevel(type, action)
+        action_data.rep_gain = ns.bladeburner.getActionRepGain(type, action, action_data.current_level)
+        action_data.action_time = ns.bladeburner.getActionTime(type, action)
+        action_data.rep_per_sec = action_data.rep_gain / action_data.action_time * 1000
+        const original_city = this.current_city
+        action_data.city = 'none'
+        action_data.weighted_success = 0
+        for (const city of Utils.cities) {
+            ns.bladeburner.switchCity(city);
+            const estimated_success = ns.bladeburner.getActionEstimatedSuccessChance(type, action)
+            if (estimated_success[1] - estimated_success[0] > max_intel_spread && !this.is_intel_action(action)) {
+                action_data.needs_intel = true;
+            }
+            const estimated_success_avg = (estimated_success[0] + estimated_success[1]) / 2
+            const rep_per_sec_weighted = action_data.rep_per_sec * estimated_success_avg
+            if (rep_per_sec_weighted > best_choice.weighted_success) {
+                action_data.city = city;
+                action_data.estimated_success_avg = estimated_success_avg
+                action_data.weighted_success = rep_per_sec_weighted
+            }
+        }
+        if (original_city != this.current_city && original_city != 'none') {
+            ns.bladeburner.switchCity(original_city);
+        }
+        return action_data
+    }
+
+
     get_best_action(ns, types) {
         let best_choice = { type: 'General', name: 'Training', city: 'none', weighted_success: 0 }
         for (const type of types) {
-            if (type == 'BlackOps') continue;
             for (const action of this.get_actions(type)) {
-                const count = ns.bladeburner.getActionCountRemaining(type, action)
-                if (count <= 0) continue;
-                for (const city of Utils.cities) {
-                    ns.bladeburner.switchCity(city);
-                    const current_level = ns.bladeburner.getActionCurrentLevel(type, action)
-                    const rep_gain = ns.bladeburner.getActionRepGain(type, action, current_level)
-                    const action_time = ns.bladeburner.getActionTime(type, action)
-                    const rep_per_sec = rep_gain / action_time * 1000
-                    const estimated_success = ns.bladeburner.getActionEstimatedSuccessChance(type, action)
-                    const estimated_success_avg = (estimated_success[0] + estimated_success[1]) / 2
-                    const rep_per_sec_weighted = rep_per_sec * estimated_success_avg
-                    if (estimated_success_avg > this.min_success_chance &&
-                        rep_per_sec_weighted > best_choice.weighted_success) {
-                        best_choice.type = type;
-                        best_choice.name = action;
-                        best_choice.city = city;
-                        best_choice.weighted_success = rep_per_sec_weighted;
-                        if (best_choice.name == this.current_action && best_choice.city == this.current_city) {
-                            return best_choice;
-                        }
+                choice = this.get_action_data(ns, action, type)
+                if (choice.count <= 0) continue;
+                if (choice.needs_intel) return this.get_best_intel_action(ns)
+                if (choice.estimated_success_avg > this.min_success_chance &&
+                    choice.weighted_success > best_choice.weighted_success) {
+                    best_choice = choice;
+                    if (best_choice.name == this.current_action && best_choice.city == this.current_city) {
+                        return best_choice;
                     }
                 }
             }
         }
         return best_choice;
     }
+
+
 
     select_next_action(ns) {
         if (ns.getPlayer().strength < 100) {
@@ -220,13 +285,13 @@ export class BladeBurner {
                 this.current_interval = black_op.time_needed + 5;
                 return black_op;
             }
-            let types
+            let next_action
             if (this.priority(ns) == 'rank') {
-                types = this.types;
+                next_action = this.get_best_rank_action(ns)
             } else {
-                types = ['Contracts']
+                next_action = this.get_best_money_action(ns)
             }
-            const next_action = this.get_best_action(ns, types)
+            next_action = this.get_best_action(ns, types)
             console.debug(next_action)
             return next_action
         }

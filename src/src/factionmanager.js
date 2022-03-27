@@ -14,6 +14,7 @@ export class FactionManager {
         this.join_factions(ns);
         AugDisplayer.by_price(ns, AugHelper.get_affordable_augs(ns));
         this.finished = true;
+        // TODO NS.share()?
     }
 
     join_factions(ns) {
