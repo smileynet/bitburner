@@ -39,7 +39,7 @@ export class BladeBurner {
             const next_action = this.select_next_action(ns)
             console.debug(next_action);
             let message = `Bladeburner next action: ${next_action.name} in ${next_action.city}\n`
-            if (next_action.name == this.current_action && next_action.city == this.current_city) {
+            if (next_action.name == this.current_action && next_action.city == this.current_city && next_action.type != 'BlackOps') {
                 message += `Staying on current plan.\n`
             } else {
                 if (next_action.city != 'none') {
@@ -54,7 +54,7 @@ export class BladeBurner {
                 message += `Executing ${next_action.name}, result: ${result}\n`
             }
             this.messenger.add_message('BladeBurner action refresh', message)
-            this.current_interval = this.refresh_interval;
+            this.current_interval = Math.max(this.refresh_interval, this.current_interval);
         } else {
             this.current_interval--
         }
@@ -136,10 +136,10 @@ export class BladeBurner {
                 if (cost <= ns.bladeburner.getSkillPoints()) {
                     ns.bladeburner.upgradeSkill(skill.name);
                     const message = `${skill.name} upgraded to ${ns.bladeburner.getSkillLevel(skill.name)}.\n`
-                    this.messenger.append_message('BladeBurner skill upgrade', message)
+                    this.messenger.append_message('BladeBurner skill upgraded', message)
                 } else {
-                    const message = `Next skill upgrade: ${skill.name} cost: ${cost}\n`
-                    this.messenger.append_message('BladeBurner skill upgrade', message)
+                    const message = `${skill.name} cost: ${cost}\n`
+                    this.messenger.add_message('BladeBurner next skill upgrade', message)
                     return;
                 }
             }

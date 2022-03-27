@@ -1,4 +1,4 @@
-import { Messenger } from "/src/messenger.js";
+import Messenger from "/src/messenger.js";
 import { BladeBurner } from "/src/bladeburner.js";
 
 /** @param {NS} ns **/

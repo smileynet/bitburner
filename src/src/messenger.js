@@ -33,3 +33,5 @@ export class Messenger {
         }
     }
 }
+
+export default Messenger;
