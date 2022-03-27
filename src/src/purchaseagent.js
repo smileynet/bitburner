@@ -40,7 +40,7 @@ export class PurchaseAgent {
         const ram_amount = this.max_affordable_ram(ns);
         if (ram_amount > 0) {
             const hostname = ns.purchaseServer("hackserv-" + (this.current_servers(ns).length < 9 ? '0' : '') + (this.current_servers(ns).length + 1), ram_amount);
-            const message = `${hostname} purchased with ${ram_amount} RAM.`
+            const message = `${hostname} purchased with ${ram_amount} RAM.\n`
             this.scanner.add_server(ns, hostname);
             this.messenger.append_message('PurchaseAgent Server Purchased:', message);
             ns.toast(message);
@@ -53,7 +53,7 @@ export class PurchaseAgent {
             ns.killall(server_name);
             ns.deleteServer(server_name);
             const hostname = ns.purchaseServer(server_name, ram_amount);
-            const message = `${hostname} upgraded to ${ram_amount} RAM.`
+            const message = `${hostname} upgraded to ${ram_amount} RAM.\n`
             this.scanner.add_server(ns, hostname);
             this.messenger.append_message(`PurchaseAgent upgraded:`, message);
             ns.toast(message);

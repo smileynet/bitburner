@@ -2,8 +2,11 @@ export class Bot {
     constructor(ns, server_name) {
         this.ns = ns;
         this.name = server_name;
-        this.reserved_ram = 4
         this.max_ram = ns.getServerMaxRam(server_name);
+    }
+
+    get reserved_ram() {
+        return parseInt(this.ns.read('reserved.txt'))
     }
 
     get available_ram() {

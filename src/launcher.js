@@ -1,7 +1,7 @@
-import { Messenger } from "/src/messenger.js";
-import { Scanner } from "/src/scanner.js";
-import { BotMaster } from "/src/botmaster.js";
-import { PurchaseAgent } from "/src/purchaseagent.js";
+import Messenger from "/src/messenger";
+import { Scanner } from "/src/scanner";
+import { BotMaster } from "/src/botmaster";
+import { PurchaseAgent } from "/src/purchaseagent";
 
 /** @param {NS} ns **/
 export async function main(ns) {

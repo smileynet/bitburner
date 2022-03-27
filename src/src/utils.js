@@ -23,6 +23,10 @@ export class Utils {
     static get player_skills() {
         return ['hacking', 'strength', 'defense', 'dexterity', 'agility', 'charisma']
     }
+
+    static get combat_stats() {
+        return ['strength', 'defense', 'dexterity', 'agility']
+    }
 }
 
 export default Utils;
