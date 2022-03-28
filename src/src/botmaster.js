@@ -1,5 +1,8 @@
-import { Job } from "/src/job.js";
 import Utils from "/src/utils.js";
+import Messenger from "/src/messenger";
+import Scanner from "/src/scanner";
+import PurchaseManager from "/src/purchasemanager";
+import { Job } from "/src/job.js";
 
 export class BotMaster {
     constructor(ns, messenger, scanner) {
@@ -25,7 +28,7 @@ export class BotMaster {
 
         this.jobs.forEach(job => { job.refresh(); });
 
-        let all_procs = {};
+        let all_procs = [];
 
         for (const bot of this.bots) {
             const running_procs = ns.ps(bot.name);
@@ -33,11 +36,17 @@ export class BotMaster {
                 if (process.args.length == 0) { continue; }
                 const target_server = process.args[0];
                 const matching_jobs = this.jobs.filter(job => job.target.name == target_server);
-                const proc_desc = `${target_server} ${matching_jobs[0].task.type}`
-                if (all_procs[proc_desc] == null) {
-                    all_procs[proc_desc] = process.threads;
+                let proc = {
+                    description: `${target_server} ${matching_jobs[0].task.type}`,
+                    target: target_server,
+                    type: matching_jobs[0].task.type,
+                    threads: process.threads
+                }
+                const index = all_procs.findIndex(list_proc => list_proc.description == proc.description);
+                if (index >= 0) {
+                    all_procs[index].threads += proc.threads;
                 } else {
-                    all_procs[proc_desc] += process.threads;
+                    all_procs.push(proc)
                 }
                 if (matching_jobs) {
                     if (matching_jobs[0].task.script == process.filename) {
@@ -49,12 +58,14 @@ export class BotMaster {
             }
         }
 
-        let message = ''
-
+        all_procs.sort((a, b) => b.threads - a.threads);
+        let message = ``
         console.debug(all_procs);
-        for (const [key, value] of Object.entries(all_procs)) {
-            const event = `  ${key} threads: ${value}\n`
-            message += event
+        for (const proc of all_procs) {
+            const target_mult = this.targets.filter(target => target.name == proc.target)[0].growth_money_mult
+            message += `  ${proc.target} ${' '.repeat(20-proc.target.length)} ${proc.type}`
+            message += `${' '.repeat(10-proc.type.length)} threads: ${proc.threads}`
+            message += `${' '.repeat(10- String(proc.threads).length)} mult: ${Utils.pretty_num(target_mult)}\n`
         }
 
         this.messenger.add_message('BotMaster threads', message)
@@ -88,3 +99,21 @@ export class BotMaster {
         return jobs_batch;
     }
 }
+
+/** @param {NS} ns **/
+export async function main(ns) {
+    ns.disableLog("ALL");
+    let messenger = new Messenger();
+    let scanner = new Scanner(ns, messenger);
+    let botmaster = new BotMaster(ns, messenger, scanner);
+    let purchase_manager = new PurchaseManager(ns, messenger, scanner, 16);
+    while (true) {
+        purchase_manager.run(ns);
+        await botmaster.refresh(ns);
+        await botmaster.run(ns);
+        messenger.run(ns);
+        await ns.sleep(1000);
+    }
+}
+
+export default BotMaster;

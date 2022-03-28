@@ -1,10 +1,17 @@
-export class PurchaseAgent {
+import Utils from 'src/utils'
+import Messenger from "/src/messenger";
+import Scanner from "/src/scanner";
+
+
+export class PurchaseManager {
     constructor(ns, messenger, scanner, min_server_ram = 8) {
         this.max_servers = ns.getPurchasedServerLimit();
         this.max_server_ram = ns.getPurchasedServerMaxRam();
         this.min_server_ram = min_server_ram;
         this.messenger = messenger;
         this.scanner = scanner;
+        this.initial_step_size = 4;
+        this.initial_step_end = 1024;
     }
 
     run(ns) {
@@ -40,9 +47,9 @@ export class PurchaseAgent {
         const ram_amount = this.max_affordable_ram(ns);
         if (ram_amount > 0) {
             const hostname = ns.purchaseServer("hackserv-" + (this.current_servers(ns).length < 9 ? '0' : '') + (this.current_servers(ns).length + 1), ram_amount);
-            const message = `${hostname} purchased with ${ram_amount} RAM.\n`
+            const message = `  ${hostname} purchased with ${ram_amount} RAM.\n`
             this.scanner.add_server(ns, hostname);
-            this.messenger.append_message('PurchaseAgent Server Purchased:', message);
+            this.messenger.append_message('PurchaseManager Server Purchased:', message);
             ns.toast(message);
         }
     }
@@ -53,9 +60,9 @@ export class PurchaseAgent {
             ns.killall(server_name);
             ns.deleteServer(server_name);
             const hostname = ns.purchaseServer(server_name, ram_amount);
-            const message = `${hostname} upgraded to ${ram_amount} RAM.\n`
+            const message = `  ${hostname} upgraded to ${ram_amount} RAM.\n`
             this.scanner.add_server(ns, hostname);
-            this.messenger.append_message(`PurchaseAgent upgraded:`, message);
+            this.messenger.append_message(`PurchaseManager upgraded:`, message);
             ns.toast(message);
         }
     }
@@ -64,9 +71,15 @@ export class PurchaseAgent {
         let test_ram_amount = this.min_server_ram;
         while (ns.getPurchasedServerCost(test_ram_amount) < this.funds_avail(ns, 'purchased_server')) {
             var affordable_ram_amount = test_ram_amount;
-            test_ram_amount *= 2;
+            if (test_ram_amount >= this.initial_step_end) {
+                test_ram_amount *= 2
+            } else {
+                test_ram_amount *= this.initial_step_size;
+            }
         }
         if (test_ram_amount > this.max_server_ram) { test_ram_amount = this.max_server_ram; }
+        this.messenger.add_message(`PurchaseManager next purchased server`,
+            `  Cost: $${Utils.pretty_num(ns.getPurchasedServerCost(test_ram_amount))}   RAM: ${test_ram_amount}`)
         console.debug(`Affordable ram amount: ${affordable_ram_amount}`);
         return affordable_ram_amount;
     }
@@ -103,7 +116,7 @@ export class PurchaseAgent {
         }
 
         if (message != "") {
-            this.messenger.add_message('PurchaseAgent program(s) purchased:', message)
+            this.messenger.add_message('PurchaseManager program(s) purchased:', message)
         }
     }
 
@@ -111,9 +124,25 @@ export class PurchaseAgent {
         const ram_cost = ns.getUpgradeHomeRamCost();
         if (ram_cost < this.funds_avail(ns, 'home_ram')) {
             ns.upgradeHomeRam();
-            const event = `Home RAM upgraded!`
+            const event = `  Home RAM upgraded!`
             ns.toast(event)
-            this.messenger.add_message('PurchaseAgent home upgrade purchased:', event)
+            this.messenger.add_message('PurchaseManager home upgrade purchased:', event)
         }
     }
 }
+
+
+/** @param {NS} ns **/
+export async function main(ns) {
+    ns.disableLog("ALL");
+    let messenger = new Messenger();
+    let scanner = new Scanner(ns, messenger);
+    let purchase_agent = new PurchaseManager(ns, messenger, scanner, 16);
+    while (true) {
+        purchase_agent.run(ns);
+        messenger.run(ns);
+        await ns.sleep(1000);
+    }
+}
+
+export default PurchaseManager;

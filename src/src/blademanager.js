@@ -1,10 +1,9 @@
 import Utils from "/src/utils.js";
+import Messenger from "/src/messenger.js";
 
-export class BladeBurner {
+export class BladeManager {
     constructor(ns, messenger, interval = 60) {
         this.messenger = messenger;
-        this.low_stamina_level = Math.min(60, ns.bladeburner.getStamina()[1] - 20);
-        this.high_stamina_level = Math.min(100, ns.bladeburner.getStamina()[1]);
         this.recovering = false;
         this.min_success_chance = 0.75;
         this.refresh_interval = interval;
@@ -14,7 +13,6 @@ export class BladeBurner {
     }
 
     run(ns) {
-        this.refresh_stamina(ns);
         this.upgrade_skills(ns);
         this.refresh_action(ns);
     }
@@ -27,32 +25,25 @@ export class BladeBurner {
         }
     }
 
-    refresh_stamina(ns) {
-        if (this.high_stamina_level < 100) {
-            this.low_stamina_level = Math.min(60, ns.bladeburner.getStamina()[1] - 20);
-            this.high_stamina_level = Math.min(100, ns.bladeburner.getStamina()[1]);
-        }
-    }
-
     refresh_action(ns) {
         if (this.current_interval <= 0) {
             const next_action = this.select_next_action(ns)
             console.debug(next_action);
-            let message = `Bladeburner next action: ${next_action.name} in ${next_action.city}\n`
+            let message = `  Bladeburner next action: ${next_action.name} in ${next_action.city}\n`
             if (next_action.name == this.current_action && next_action.city == this.current_city &&
                 next_action.type != 'BlackOps' && ns.bladeburner.getCurrentAction().type != 'idle') {
-                message += `Staying on current plan.\n`
+                message += `  Staying on current plan.\n`
             } else {
                 if (next_action.city != 'none') {
                     const result = ns.bladeburner.switchCity(next_action.city);
                     this.current_city = next_action.city
-                    message += `Switching to ${next_action.city}, result: ${result}\n`
+                    message += `  Switching to ${next_action.city}, result: ${result}\n`
                 } else {
                     this.current_city = 'none'
                 }
                 const result = ns.bladeburner.startAction(next_action.type, next_action.name);
                 this.current_action = next_action.name
-                message += `Executing ${next_action.name}, result: ${result}\n`
+                message += `  Executing ${next_action.name}, result: ${result}\n`
             }
             this.messenger.add_message('BladeBurner action refresh', message)
             this.current_interval = Math.max(this.refresh_interval, this.current_interval);
@@ -121,16 +112,19 @@ export class BladeBurner {
     }
 
     low_stamina(ns) {
-        const current_stamina = ns.bladeburner.getStamina()[0];
+        const [current_stamina, max_stamina] = ns.bladeburner.getStamina();
+        const high_stamina = max_stamina * 0.8
+        const low_stamina = max_stamina * 0.6
+        this.messenger.add_message(`BladeManager Stamina Update`, `  current stamina: ${Math.floor(current_stamina)} recovering: ${this.recovering}\n  low stamina: ${Math.floor(low_stamina)} high stamina: ${Math.floor(high_stamina)}`)
         if (this.recovering) {
-            if (this.high_stamina_level > current_stamina) {
+            if (high_stamina > current_stamina) {
                 return true;
             } else {
                 this.recovering = false;
                 return false;
             }
         } else {
-            if (this.low_stamina_level > current_stamina) {
+            if (low_stamina > current_stamina) {
                 this.recovering = true;
                 return true;
             } else {
@@ -157,10 +151,10 @@ export class BladeBurner {
                 const cost = ns.bladeburner.getSkillUpgradeCost(skill.name)
                 if (cost <= ns.bladeburner.getSkillPoints()) {
                     ns.bladeburner.upgradeSkill(skill.name);
-                    const message = `${skill.name} upgraded to ${ns.bladeburner.getSkillLevel(skill.name)}.\n`
+                    const message = `  ${skill.name} upgraded to ${ns.bladeburner.getSkillLevel(skill.name)}.\n`
                     this.messenger.append_message('BladeBurner skill upgraded', message)
                 } else {
-                    const message = `${skill.name} cost: ${cost}\n`
+                    const message = `  ${skill.name} cost: ${cost}\n`
                     this.messenger.add_message('BladeBurner next skill upgrade', message)
                     return;
                 }
@@ -197,12 +191,11 @@ export class BladeBurner {
     get_best_intel_action(ns) {
         let best_choice = { type: 'General', name: 'Field Analysis', city: 'none' }
         for (const item of this.intel_actions) {
-            choice = this.get_action_data(ns, item.action, item.type)
+            let choice = this.get_action_data(ns, item.action, item.type)
             if (choice.estimated_success_avg > this.min_success_chance) {
                 best_choice = choice;
             }
         }
-
         return best_choice
     }
 
@@ -231,17 +224,18 @@ export class BladeBurner {
             ns.bladeburner.switchCity(city);
             const estimated_success = ns.bladeburner.getActionEstimatedSuccessChance(type, action)
             if (estimated_success[1] - estimated_success[0] > max_intel_spread && !this.is_intel_action(action)) {
+                this.messenger.add_message(`BladeMaster insufficient intel`, `  Action:${action}   low: ${Math.floor(estimated_success[0] * 100)}   high: ${Math.floor(estimated_success[1] * 100)}`)
                 action_data.needs_intel = true;
             }
             const estimated_success_avg = (estimated_success[0] + estimated_success[1]) / 2
             const rep_per_sec_weighted = action_data.rep_per_sec * estimated_success_avg
-            if (rep_per_sec_weighted > best_choice.weighted_success) {
+            if (rep_per_sec_weighted > action_data.weighted_success) {
                 action_data.city = city;
                 action_data.estimated_success_avg = estimated_success_avg
                 action_data.weighted_success = rep_per_sec_weighted
             }
         }
-        if (original_city != this.current_city && original_city != 'none') {
+        if (original_city != this.current_city && original_city != 'none' && action_data.needs_intel == false) {
             ns.bladeburner.switchCity(original_city);
         }
         return action_data
@@ -252,9 +246,11 @@ export class BladeBurner {
         let best_choice = { type: 'General', name: 'Training', city: 'none', weighted_success: 0 }
         for (const type of types) {
             for (const action of this.get_actions(type)) {
-                choice = this.get_action_data(ns, action, type)
+                let choice = this.get_action_data(ns, action, type)
                 if (choice.count <= 0) continue;
-                if (choice.needs_intel) return this.get_best_intel_action(ns)
+                if (choice.needs_intel) {
+                    return this.get_best_intel_action(ns)
+                }
                 if (choice.estimated_success_avg > this.min_success_chance &&
                     choice.weighted_success > best_choice.weighted_success) {
                     best_choice = choice;
@@ -291,9 +287,23 @@ export class BladeBurner {
             } else {
                 next_action = this.get_best_money_action(ns)
             }
-            next_action = this.get_best_action(ns, types)
             console.debug(next_action)
             return next_action
         }
     }
 }
+
+/** @param {NS} ns **/
+export async function main(ns) {
+    let messenger = new Messenger();
+    let bladeburner = new BladeManager(ns, messenger);
+    let loop = true
+    while (loop) {
+        bladeburner.run(ns);
+        messenger.run(ns);
+        await ns.sleep(1000);
+        loop = true;
+    }
+}
+
+export default BladeManager;

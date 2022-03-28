@@ -1,16 +1,16 @@
 import Messenger from '/src/messenger'
-import ScriptLauncher from 'scriptlauncher'
+import ScriptLauncher from '/src/scriptlauncher'
 
 class Init {
     constructor(ns, messenger) {
         this.messenger = messenger
         this.script_launcher = new ScriptLauncher(ns, messenger)
         this.tasks = [
-            { name: 'hacking', enabled: true, running: false, script: 'launcher.js', requirements: 'None.' },
-            { name: 'player_manager', enabled: true, running: false, script: 'playerlauncher.js', requirements: 'None.' },
-            { name: 'gang', enabled: false, running: false, script: 'ganglauncher.js', requirements: 'Need to be in a gang (-54000 karma)' },
-            { name: 'corp', enabled: false, running: false, script: 'corplauncher.js', requirements: 'Need to form a corp ($150b)' },
-            { name: 'bladeburner', enabled: true, running: false, script: 'bladelauncher.js', requirements: 'Need to join Bladeburners (100 each combat stat)' },
+            { name: 'hacking', enabled: true, running: false, script: '/src/botmaster.js', requirements: 'None.' },
+            { name: 'player_manager', enabled: true, running: false, script: '/src/playermanager.js', requirements: 'None.' },
+            { name: 'gang', enabled: false, running: false, script: '/src/gangmanager.js', requirements: 'Need to be in a gang (-54000 karma)' },
+            { name: 'corp', enabled: false, running: false, script: '/src/corpmanager.js', requirements: 'Need to form a corp ($150b)' },
+            { name: 'bladeburner', enabled: true, running: false, script: '/src/blademanager.js', requirements: 'Need to join Bladeburners (100 each combat stat)' },
         ];
     }
 
@@ -19,7 +19,7 @@ class Init {
         for (let task of this.tasks) {
             if (task.running == false && this.can_launch(ns, task.name)) {
                 await this.script_launcher.try_to_launch(ns, task)
-            } else {
+            } else if (task.enabled) {
                 this.messenger.add_message(`${task.name} pending`, `Requirements: ${task.requirements}`)
             }
         }

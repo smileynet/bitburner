@@ -1,4 +1,5 @@
 import Utils from "/src/utils.js";
+import Messenger from "/src/messenger.js";
 
 export class FactionManager {
     constructor(messenger) {
@@ -51,9 +52,10 @@ export class AugHelper {
         let all_augs = [];
         for (const faction_augs of augs_by_faction) {
             for (const aug of faction_augs.augs) {
-                const index = all_augs.findIndex(list_aug => list_aug == aug.name);
+                const index = all_augs.findIndex(list_aug => list_aug.name == aug.name);
+                ns.tprint(`Aug ${aug.name} index ${index}`);
                 if (index >= 0) {
-                    all_augs[index].faction.concat(aug.faction);
+                    all_augs[index].faction = [...all_augs[index].faction, aug.faction];
                 } else {
                     all_augs.push(aug)
                 }
@@ -108,14 +110,32 @@ export class AugDisplayer {
 
         let message = `Augs by descending price\n`
         for (const aug_data of aug_list) {
-            message += `\n  ${aug_data.name} price: ${Utils.pretty_num(aug_data.price)} rep required: ${Utils.pretty_num(aug_data.rep_req)} prereqs: ${aug_data.prereqs}\n`;
-            message += `  Stats:`
+            message += `\n  ${aug_data.name}   price: ${Utils.pretty_num(aug_data.price)}\n`
+            message += `  Rep required: ${Utils.pretty_num(aug_data.rep_req)}   Prereqs: ${aug_data.prereqs}\n`;
+            message += `  Factions: ${aug_data.faction}\n`
+            message += `  Stats:\n`
+            let i = 0;
             for (const [key, value] of Object.entries(aug_data.stats)) {
-                message += `    ${key}: ${value}\n`
+                let line = `    ${key}: ${value} `
+                message += line + `${' '.repeat(45-line.length)}`
+                i++;
+                if (i % 2 == 0) message += `\n`
             }
         }
         message += `\nTotal: ${aug_list.length}`;
         ns.tprint(message);
+    }
+}
+
+/** @param {NS} ns **/
+export async function main(ns) {
+    let messenger = new Messenger();
+    const factionManager = new FactionManager(messenger)
+    factionManager.init(ns);
+    while (!factionManager.finished) {
+        factionManager.run(ns);
+        messenger.run(ns);
+        await ns.sleep(1000);
     }
 }
 

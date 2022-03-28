@@ -10,7 +10,6 @@ export class Scanner {
         this.known_servers = [];
         this.player = new Player(ns);
         this.add_server(ns, "home");
-        this.refresh(ns);
         this.faction_servers = ["CSEC", "avmnite-02h", "I.I.I.I", "run4theh111z"]
     }
 
@@ -59,4 +58,10 @@ export class Scanner {
         console.debug(bots);
         return bots;
     }
+
+    check_faction_servers(ns) {
+        let available_faction_servers = this.faction_servers.filter(server => server.rooted == true && this.player.can_root(ns, server));
+    }
 }
+
+export default Scanner;

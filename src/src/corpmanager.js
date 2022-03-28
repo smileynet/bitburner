@@ -1,6 +1,7 @@
 import Utils from "/src/utils.js";
+import Messenger from "/src/messenger.js";
 
-export class CorpRunner {
+export class CorpManager {
     constructor(ns, messenger) {
         this.messenger = messenger;
         this.corp_api = eval('ns.corporation');
@@ -13,6 +14,7 @@ export class CorpRunner {
         this.base_investment_amount = 1000000000 // 1 billion
         this.high_priority = ['Software']
         this.priority_multiplier = 2
+        this.finished = false
     }
 
     async run(ns) {
@@ -371,3 +373,16 @@ export class CorpRunner {
         }
     }
 }
+
+/** @param {NS} ns **/
+export async function main(ns) {
+    let messenger = new Messenger();
+    let corp_manager = new CorpManager(ns, messenger);
+    while (!corp_manager.finished) {
+        await corp_manager.run(ns);
+        messenger.run(ns);
+        await ns.sleep(1000);
+    }
+}
+
+export default CorpManager;
