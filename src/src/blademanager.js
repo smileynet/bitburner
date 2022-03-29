@@ -8,6 +8,7 @@ export class BladeManager {
         this.min_success_chance = 0.75;
         this.max_chaos = 50;
         this.max_intel_spread = 0.3;
+        this.rank_target = 5000
         this.refresh_interval = interval;
         this.current_interval = interval;
         this.current_action = 'none'
@@ -20,7 +21,7 @@ export class BladeManager {
     }
 
     priority(ns) {
-        if (!ns.fileExists('money.txt')) {
+        if (!ns.fileExists('money.txt') && ns.bladeburner.getRank() < this.rank_target) {
             return 'rank'
         } else {
             return 'money'
@@ -191,7 +192,7 @@ export class BladeManager {
     }
 
     get_best_intel_action(ns) {
-        let best_choice = { type: 'General', name: 'Field Analysis', city: this.next_city }
+        let best_choice = { type: 'General', name: 'Field Analysis', city: this.next_city ? this.next_city : 'none' }
         for (const item of this.intel_actions) {
             let choice = this.get_action_data(ns, item.action, item.type, [this.next_city])
             if (choice.count <= 0) continue;
@@ -295,7 +296,7 @@ export class BladeManager {
                 return black_op;
             }
             const result = this.city_chaos(ns);
-            if (result != false) return { type: 'General', name: 'Diplomacy', city: 'result' }
+            if (result != false) return { type: 'General', name: 'Diplomacy', city: result }
             let next_action
             if (this.priority(ns) == 'rank') {
                 next_action = this.get_best_rank_action(ns)

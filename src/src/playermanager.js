@@ -18,17 +18,17 @@ export class PlayerManager {
         ];
     }
 
-    init(ns) {
+    async init(ns) {
         let goals = this.goals.filter(goal => goal.enabled);
         goals.forEach(goal => {
             this.handle_goal(ns, goal);
         })
         if (this.task_queue <= 0) {
-            this.finish(ns);
+            await this.finish(ns);
         }
     }
 
-    run(ns) {
+    async run(ns) {
         if (this.current_task == null || this.current_task.is_finished(ns)) {
             if (this.task_queue.length > 0) {
                 this.current_task = this.get_next_task(ns)
@@ -42,19 +42,19 @@ export class PlayerManager {
                 this.current_task.init(ns);
                 return
             } else {
-                this.finish(ns);
+                await this.finish(ns);
             }
         }
         this.current_task.run(ns);
     }
 
-    finish(ns) {
+    async finish(ns) {
         ns.tprint(`No more tasks remaining, exiting!`)
         if (this.stop_on_finish) {
             let result = false
-            while (!result) {
+            while (!result && ns.isBusy()) {
                 result = ns.stopAction()
-
+                await ns.sleep(100)
             }
         }
         this.finished = true;
@@ -262,9 +262,9 @@ class PlayerHelper {
 export async function main(ns) {
     let messenger = new Messenger();
     const playerManager = new PlayerManager(messenger)
-    playerManager.init(ns);
+    await playerManager.init(ns);
     while (!playerManager.finished) {
-        playerManager.run(ns);
+        await playerManager.run(ns);
         messenger.run(ns);
         await ns.sleep(1000);
     }

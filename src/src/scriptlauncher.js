@@ -7,6 +7,14 @@ export class ScriptLauncher {
         this.current_task = 'none'
     }
 
+    init(ns) {
+        for (const task of this.tasks) {
+            if (ns.isRunning(task, 'home')) {
+                ns.kill(task, 'home')
+            }
+        }
+    }
+
     create_tasks(ns, script_names) {
         let tasks = [];
         script_names.forEach(script_name => {
@@ -73,7 +81,7 @@ export async function main(ns) {
 
     const messenger = new Messenger()
     const script_launcher = new ScriptLauncher(ns, messenger, ns.args)
-
+    script_launcher.init(ns)
     while (!script_launcher.finished) {
         await script_launcher.run(ns)
         messenger.run(ns);

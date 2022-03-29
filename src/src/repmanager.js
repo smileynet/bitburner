@@ -2,50 +2,62 @@ import Utils from 'src/utils'
 import Messenger from "/src/messenger";
 
 export class RepManager {
-    constructor(messenger, goals, buy_augs_on_exit = false) {
+    constructor(messenger, buy_augs_on_exit = true) {
         this.messenger = messenger;
-        this.goals = goals;
-        this.current_goal = this.goals.shift();
         this.finished = false;
-        this.aggressive_boost = true
+        this.faction_favor_to_buy = 150;
+        this.default_focus = false;
         this.buy_augs_on_exit = buy_augs_on_exit
     }
 
-    init(ns) {
+    async init(ns) {
         ns.kill('/utils/boost.js', 'home')
         ns.run('/utils/boost.js');
         ns.stopAction();
+        this.load_goals(ns)
+        if (this.buy_augs_on_exit) ns.tprint `WARN: This script will buy augs when completed, likely trigging a reset`
     }
 
     run(ns) {
-        this.join_factions(ns);
+        RepHelper.join_factions(ns);
         this.handle_goals(ns);
     }
 
     finish(ns) {
+        ns.kill('/utils/boost.js', 'home')
         if (this.buy_augs_on_exit) {
             ns.run(`/src/scriptlauncher.js`, 1, `/src/augmanager.js`)
         }
     }
 
-    join_factions(ns) {
-        const faction_invites = ns.checkFactionInvitations();
-        for (const faction of faction_invites) {
-            if (Utils.cities.includes(faction)) {
-                if (!this.should_join_city_faction(ns, faction)) continue;
-            }
-            const result = ns.joinFaction(faction);
-            ns.tprint(`Faction ${faction} joined. Result ${result}`);
+    get faction_data() {
+        let faction_data = [{
+            faction: 'Tian Di Hui',
+            location: 'Chongqing',
+            requirements: [
+                { type: 'cash', amount: 1000000 },
+                { type: 'hacking', amount: 50 }
+            ]
+        }]
+
+        if (ns.fileExists('next_city.txt', 'home')) {
+            city_faction = JSON.parse(ns.read('next_city.txt'))
+            faction_data = [...faction_data, ...city_faction]
         }
+
+        return faction_data
     }
 
-    should_join_city_faction(ns, faction) {
-        var faction_augs = AugHelper.get_unowned_faction_aug_data(ns, faction);
-        if (faction_augs.length > 1) {
-            return true;
+    load_goals(ns) {
+        const filename = 'goals.txt'
+        if (ns.fileExists(filename, 'home')) {
+            this.goals = JSON.parse(ns.read(filename))
         } else {
-            return false;
+            ns.tprint(`Cannot find ${filename}. Exiting!`)
+            return;
         }
+
+        this.current_goal = this.goals.shift();
     }
 
     handle_goals(ns) {
@@ -65,6 +77,7 @@ export class RepManager {
                 this.finished = true;
             }
         } else {
+            this.attempt_donation(ns, this.current_goal)
             if (!ns.isBusy()) {
                 this.do_work(ns, this.current_goal);
             } else {
@@ -79,14 +92,37 @@ export class RepManager {
         }
     }
 
+    attempt_donation(ns, faction_goal) {
+        if (ns.getFactionFavor(faction_goal.faction) >= this.faction_favor_to_buy) {
+            const amount = 100000000
+            const result = donateToFaction(faction_goal.faction, amount)
+            ns.tprint(`Can buy favor for faction ${faction_goal.faction}. Attempted donation: ${amount} result: ${result}`)
+
+        }
+    }
+
     do_work(ns, faction_goal) {
+
         let work_types = ["Hacking Contracts", "Security Work", "Field Work"]
         for (const work_type of work_types) {
-            if (ns.workForFaction(faction_goal.faction, work_type)) {
-                const result = ns.setFocus(false);
-                ns.tprint(`Doing ${work_type} for ${faction_goal.faction} until ${Utils.pretty_num(faction_goal.rep)} rep. Focus: ${result}`)
+            if (ns.workForFaction(faction_goal.faction, work_type, this.default_focus)) {
+                ns.tprint(`Doing ${work_type} for ${faction_goal.faction} until ${Utils.pretty_num(faction_goal.rep)} rep.`)
                 break;
             }
+        }
+
+    }
+}
+
+export class RepHelper {
+    static join_factions(ns) {
+        const faction_invites = ns.checkFactionInvitations();
+        for (const faction of faction_invites) {
+            if (Utils.cities.includes(faction)) {
+                continue;
+            }
+            const result = ns.joinFaction(faction);
+            ns.tprint(`Faction ${faction} joined. Result ${result}`);
         }
     }
 }
@@ -94,18 +130,10 @@ export class RepManager {
 /** @param {NS} ns **/
 export async function main(ns) {
     ns.disableLog("ALL");
-    const buy_augs_on_exit = ns.args[0] == 'buy' ? true : false
-    const filename = 'goals.txt'
-    let goals
-    if (ns.fileExists(filename, 'home')) {
-        goals = JSON.parse(ns.read(filename))
-    } else {
-        ns.tprint(`Cannot find ${filename}. Exiting!`)
-        return;
-    }
+    const buy_augs_on_exit = ns.args[0] == 'grind' ? false : true
     const messenger = new Messenger();
-    const repManager = new RepManager(messenger, goals, buy_augs_on_exit)
-    repManager.init(ns);
+    const repManager = new RepManager(messenger, buy_augs_on_exit)
+    await repManager.init(ns);
     while (!repManager.finished) {
         repManager.run(ns);
         messenger.run(ns);

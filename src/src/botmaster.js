@@ -11,23 +11,18 @@ export class BotMaster {
         this.jobs = [];
     }
 
-    refresh(ns) {
-        this.scanner.refresh(ns)
-        this.targets = this.scanner.target_servers(ns);
-        this.bots = this.scanner.bot_servers(ns);
+    async run(ns) {
+        this.update_jobs(ns)
+        await this.assign_jobs(ns);
+    }
 
-        for (const target of this.targets) {
-            if (this.jobs.filter(job => job.target.name == target.name).length == 0) {
-                this.jobs.push(new Job(target));
-                let message = `  ${target.name} ${' '.repeat(20-target.name.length)} multiplier: ${Utils.pretty_num(target.growth_money_mult)}\n`
-                this.messenger.append_message('BotMaster new jobs', message)
-            }
-        }
+    update_jobs(ns) {
+        this.refresh_data(ns);
+        this.handle_active_threads(ns)
+    }
 
-        this.jobs.forEach(job => { job.refresh(); });
-
+    handle_active_threads(ns) {
         let all_procs = [];
-
         for (const bot of this.bots) {
             const running_procs = ns.ps(bot.name);
             for (const process of running_procs) {
@@ -57,25 +52,43 @@ export class BotMaster {
             }
         }
 
-        all_procs.sort((a, b) => b.threads - a.threads);
-        let message = ``
-        console.debug(all_procs);
-        for (const proc of all_procs) {
-            const target_mult = this.targets.filter(target => target.name == proc.target)[0].growth_money_mult
-            message += `  ${proc.target} ${' '.repeat(20-proc.target.length)} ${proc.type}`
-            message += `${' '.repeat(10-proc.type.length)} threads: ${proc.threads}`
-            message += `${' '.repeat(10- String(proc.threads).length)} mult: ${Utils.pretty_num(target_mult)}\n`
-        }
-
-        this.messenger.add_message('BotMaster threads', message)
-
+        this.display_threads(all_procs);
     }
 
-    async run(ns) {
+    display_threads(all_procs) {
+        all_procs.sort((a, b) => b.threads - a.threads);
+        let message = ``;
+        console.debug(all_procs);
+        for (const proc of all_procs) {
+            const target_mult = this.targets.filter(target => target.name == proc.target)[0].growth_money_mult;
+            message += `  ${proc.target} ${' '.repeat(20 - proc.target.length)} ${proc.type}`;
+            message += `${' '.repeat(10 - proc.type.length)} threads: ${proc.threads}`;
+            message += `${' '.repeat(10 - String(proc.threads).length)} mult: ${Utils.pretty_num(target_mult)}\n`;
+        }
+        this.messenger.add_message('BotMaster threads', message);
+    }
+
+    refresh_data(ns) {
+        this.scanner.refresh(ns);
+        this.targets = this.scanner.target_servers(ns);
+        this.bots = this.scanner.bot_servers(ns);
+
+        for (const target of this.targets) {
+            if (this.jobs.filter(job => job.target.name == target.name).length == 0) {
+                this.jobs.push(new Job(target));
+                let message = `  ${target.name} ${' '.repeat(20 - target.name.length)} multiplier: ${Utils.pretty_num(target.growth_money_mult)}\n`;
+                this.messenger.append_message('BotMaster new jobs', message);
+            }
+        }
+
+        this.jobs.forEach(job => { job.refresh(); });
+    }
+
+    async assign_jobs(ns) {
         const available_bots = this.bots.filter(bot => bot.available);
         available_bots.sort((a, b) => b.available_ram - a.available_ram);
         for (const bot of available_bots) {
-            let active_jobs = this.create_jobs_batch(ns)
+            let active_jobs = this.create_jobs_batch(ns);
             while (bot.available && active_jobs.length > 0) {
                 let job = active_jobs.shift();
                 await job.run(bot);
@@ -107,7 +120,7 @@ export async function main(ns) {
     let purchase_manager = new PurchaseManager(ns, messenger, scanner, 16);
     while (true) {
         purchase_manager.run(ns);
-        await botmaster.refresh(ns);
+        await botmaster.update_jobs(ns);
         await botmaster.run(ns);
         messenger.run(ns);
         await ns.sleep(1000);

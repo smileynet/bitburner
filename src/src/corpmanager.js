@@ -17,6 +17,14 @@ export class CorpManager {
         this.finished = false
     }
 
+    init(ns) {
+        if (!ns.getPlayer().hasCorporation) {
+            this.corp_api.createCorporation('Biggiez', true)
+            this.corp_api.expandIndustry('Software', 'Warez')
+        }
+    }
+
+
     async run(ns) {
         this.create_products(ns)
         this.stock_buyback(ns)
@@ -378,6 +386,7 @@ export class CorpManager {
 export async function main(ns) {
     let messenger = new Messenger();
     let corp_manager = new CorpManager(ns, messenger);
+    corp_manager.init(ns)
     while (!corp_manager.finished) {
         await corp_manager.run(ns);
         messenger.run(ns);

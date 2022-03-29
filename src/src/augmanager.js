@@ -1,34 +1,55 @@
 import Utils from "/src/utils.js";
+import { RepHelper } from "/src/repmanager.js"
 import Messenger from "/src/messenger.js";
 
+
 export class AugManager {
-    constructor(messenger, buy_augs) {
+    constructor(messenger, check) {
         this.messenger = messenger;
-        this.check = buy_augs;
+        this.check = check;
         this.max_rep_default = 10000
-        this.start_with_affordable = false
+        this.min_augs = 5
         this.finished = false;
+    }
+
+    init(ns) {
+        console.debug('Init')
+        if (!ns.fileExists('cheap.txt')) {
+            this.start_with_affordable = false
+        } else {
+            this.start_with_affordable = true
+        }
     }
 
     async run(ns) {
         if (this.check) {
-            this.buy_augs(ns);
-        } else {
             AugDisplayer.by_price(ns, AugHelper.get_affordable_augs(ns))
+            RepHelper.join_factions(ns);
+            await this.handle_city_factions(ns)
             await this.set_faction_goals(ns)
             this.finished = true;
+        } else {
+            await ns.write('money.txt', 'true', 'w');
+            this.buy_augs(ns)
         }
     }
 
     async set_faction_goals(ns, max_rep = this.max_rep_default) {
+        if (max_rep > 1000000000000) return // prevent infinity
         const augs_by_faction = AugHelper.get_unowned_augs_by_faction(ns);
+        if (ns.getPlayer().factions.length < 0) {
+            ns.tprint(`WARN: No augs found! Are you in any factions?`)
+            return
+        }
         let all_augs = [];
         let goals = [];
         for (const faction_augs of augs_by_faction) {
+            if (faction_augs.faction == 'Bladeburners') continue // Can't earn rep directly with Bladeburners
             let faction_rep_level = 0
             for (const aug of faction_augs.augs) {
                 if (aug.rep_req > faction_rep_level && aug.rep_req < max_rep) {
                     faction_rep_level = aug.rep_req
+                    all_augs.push(aug);
                 }
             }
             if (faction_rep_level > 0) goals.push({ faction: faction_augs.faction, rep: faction_rep_level })
@@ -37,10 +58,34 @@ export class AugManager {
             const new_rep = max_rep * 2
             ns.tprint(`No goals found, trying again with ${new_rep} max rep`)
             await this.set_faction_goals(ns, new_rep)
+        } else if (all_augs.length < this.min_augs) {
+            const new_rep = max_rep * 1.5
+            ns.tprint(`Fewer than ${this.min_augs} augs found: ${all_augs.length}, trying again with ${new_rep} max rep`)
+            await this.set_faction_goals(ns, new_rep)
         } else {
             const filename = 'goals.txt'
             await ns.write(filename, JSON.stringify(goals), 'w');
-            ns.tprint(`Goals written to ${filename} with ${goals.length} goals.`)
+            ns.tprint(`Goals written to ${filename} with ${goals.length} goals totaling ${all_augs.length} augs.`)
+        }
+    }
+
+    async handle_city_factions(ns) {
+        let city_faction = null
+        for (const city of Utils.cities) {
+            if (AugHelper.city_faction_has_unpurchased_augs(ns, city)) {
+                city_faction = {
+                    faction: city,
+                    location: city,
+                    requirements: [
+                        { type: 'cash', amount: AugHelper.get_city_faction_required_cash(city) }
+                    ]
+                }
+                break;
+            }
+        }
+        if (city_faction) {
+            ns.tprint(`Next city faction to join: ${city_faction.faction}`)
+            await ns.write(`next_city.txt`, JSON.stringify(city_faction), 'w')
         }
     }
 
@@ -59,7 +104,6 @@ export class AugManager {
         if (!this.augs_to_buy || this.augs_to_buy.length <= 0) {
             this.get_next_aug(ns)
         }
-
         if (this.next_aug.price <= ns.getServerMoneyAvailable('home')) {
             this.buy_aug(ns)
         } else {
@@ -76,11 +120,27 @@ export class AugManager {
 
     buy_aug(ns, aug = this.next_aug) {
         const faction = this.get_best_faction(ns, this.next_aug.faction);
-        const result = ns.purchaseAugmentation(faction, this.next_aug.name)
-        ns.tprint(`Aug purchased: ${this.next_aug.name}   price: ${Utils.pretty_num(this.next_aug.price)}   ${result}`)
-        this.messenger.append_message(`FactionManager Aug Purchased`,
-            `  ${this.next_aug.name}   price: ${Utils.pretty_num(this.next_aug.price)}`);
-        this.next_aug = this.augs_to_buy.shift()
+        if (this.meets_aug_prereqs(ns, aug)) {
+            const result = ns.purchaseAugmentation(faction, this.next_aug.name)
+            ns.tprint(`Aug purchased: ${this.next_aug.name}   price: ${Utils.pretty_num(this.next_aug.price)}   ${result}`)
+            this.messenger.append_message(`FactionManager Aug Purchased`,
+                `  ${this.next_aug.name}   price: ${Utils.pretty_num(this.next_aug.price)}`);
+            this.next_aug = this.augs_to_buy.shift()
+        } else {
+            const index = this.augs_to_buy.findIndex(prereq_aug => prereq_aug.name == aug.prereqs[0]);
+            const prereq_aug = this.aug_to_buy[index]
+            ns.tprint(`Aug pre-reqs not met for ${aug.name}. Moving prereq ${prereq_aug.name} to the front of the list.`)
+            this.augs_to_buy.unshift(aug)
+            this.next_aug = prereq_aug
+        }
+    }
+
+    meets_aug_prereqs(ns, aug) {
+        const owned_augs = ns.getOwnedAugmentations(true);
+        for (const prereq of aug.prereqs) {
+            if (!owned_augs.includes(prereq)) return false
+        }
+        return true
     }
 
     get_best_faction(ns, factions) {
@@ -159,6 +219,34 @@ export class AugHelper {
         aug_data.sufficient_rep = (aug_data.rep_req <= ns.getFactionRep(faction))
         return aug_data;
     }
+
+    static city_faction_has_unpurchased_augs(ns, faction) {
+        var faction_augs = AugHelper.get_unowned_faction_aug_data(ns, faction);
+        if (faction_augs.length > 1) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    static get_city_faction_required_cash(next_city_faction) {
+        if (next_city_faction == "Sector-12") {
+            return 15000000;
+        } else if (next_city_faction == "Aevum") {
+            return 40000000;
+        } else if (next_city_faction == "Volhaven") {
+            return 50000000;
+        } else if (next_city_faction == "Chongqing") {
+            return 20000000;
+        } else if (next_city_faction == "New Tokyo") {
+            return 20000000;
+        } else if (next_city_faction == "Ishima") {
+            return 30000000;
+        } else {
+            ns.print(`ERROR: Unknown city faction!`);
+            return false;
+        }
+    }
 }
 
 export class AugDisplayer {
@@ -191,21 +279,25 @@ export class AugDisplayer {
 /** @param {NS} ns **/
 export async function main(ns) {
     const messenger = new Messenger();
-    const buy_augs = ns.args[0] == 'check' ? false : true;
+    const check = ns.args[0] == 'check' ? true : false;
     const prompt = ns.args[0] == 'prompt' ? true : false;
-    const factionManager = new AugManager(messenger, buy_augs)
+    const factionManager = new AugManager(messenger, check)
+    factionManager.init(ns)
     while (!factionManager.finished) {
         await factionManager.run(ns);
         messenger.run(ns);
         await ns.sleep(1000);
     }
-    if (buy_augs) {
+    if (check) {
         const num_augs = ns.getOwnedAugmentations(true).length - ns.getOwnedAugmentations(false).length
         let response = true
         if (prompt) {
             response = await ns.prompt(`All available augs purchased. ${num_augs} augs to install.\n\n${' '.repeat(18)}Install now?`)
         }
-        if (response) ns.installAugmentations('init.js')
+        if (response) {
+            await ns.write('last_reboot.txt', new Date().toLocaleString(), 'w')
+            ns.installAugmentations('init.js')
+        }
     }
 }
 
