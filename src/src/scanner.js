@@ -20,6 +20,10 @@ export class Scanner {
         let message = ""
         rootable_servers.forEach(server => {
             server.root(ns);
+            if (this.faction_servers.includes(server.name)) {
+                this.messenger.add_message(`Scanner new faction server available`, `Server: ${server.name}`)
+                ns.run(`/src/scriptlauncher.js`, 1, `/utils/backdoor_factions.js`);
+            }
             message += `  ${server.name}\n`
 
         })
@@ -57,10 +61,6 @@ export class Scanner {
         })
         console.debug(bots);
         return bots;
-    }
-
-    check_faction_servers(ns) {
-        let available_faction_servers = this.faction_servers.filter(server => server.rooted == true && this.player.can_root(ns, server));
     }
 }
 

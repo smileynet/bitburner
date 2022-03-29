@@ -6,6 +6,8 @@ export class BladeManager {
         this.messenger = messenger;
         this.recovering = false;
         this.min_success_chance = 0.75;
+        this.max_chaos = 50;
+        this.max_intel_spread = 0.3;
         this.refresh_interval = interval;
         this.current_interval = interval;
         this.current_action = 'none'
@@ -31,7 +33,7 @@ export class BladeManager {
             console.debug(next_action);
             let message = `  Bladeburner next action: ${next_action.name} in ${next_action.city}\n`
             if (next_action.name == this.current_action && next_action.city == this.current_city &&
-                next_action.type != 'BlackOps' && ns.bladeburner.getCurrentAction().type != 'idle') {
+                next_action.type != 'BlackOps' && ns.bladeburner.getCurrentAction().type != 'Idle') {
                 message += `  Staying on current plan.\n`
             } else {
                 if (next_action.city != 'none') {
@@ -189,9 +191,10 @@ export class BladeManager {
     }
 
     get_best_intel_action(ns) {
-        let best_choice = { type: 'General', name: 'Field Analysis', city: 'none' }
+        let best_choice = { type: 'General', name: 'Field Analysis', city: this.next_city }
         for (const item of this.intel_actions) {
-            let choice = this.get_action_data(ns, item.action, item.type)
+            let choice = this.get_action_data(ns, item.action, item.type, [this.next_city])
+            if (choice.count <= 0) continue;
             if (choice.estimated_success_avg > this.min_success_chance) {
                 best_choice = choice;
             }
@@ -209,8 +212,8 @@ export class BladeManager {
         return this.get_best_action(ns, money_types)
     }
 
-    get_action_data(ns, action, type) {
-        const max_intel_spread = 0.2
+    get_action_data(ns, action, type, cities = Utils.cities) {
+        const max_intel_spread = this.max_intel_spread;
         let action_data = { name: action, type: type }
         action_data.count = ns.bladeburner.getActionCountRemaining(type, action)
         action_data.current_level = ns.bladeburner.getActionCurrentLevel(type, action)
@@ -220,11 +223,13 @@ export class BladeManager {
         const original_city = this.current_city
         action_data.city = 'none'
         action_data.weighted_success = 0
-        for (const city of Utils.cities) {
+        for (const city of cities) {
             ns.bladeburner.switchCity(city);
             const estimated_success = ns.bladeburner.getActionEstimatedSuccessChance(type, action)
             if (estimated_success[1] - estimated_success[0] > max_intel_spread && !this.is_intel_action(action)) {
-                this.messenger.add_message(`BladeMaster insufficient intel`, `  Action:${action}   low: ${Math.floor(estimated_success[0] * 100)}   high: ${Math.floor(estimated_success[1] * 100)}`)
+                this.messenger.add_message(`BladeMaster insufficient intel`, `  Action:${action}   City:${city}` +
+                    `   low: ${Math.floor(estimated_success[0] * 100)}   high: ${Math.floor(estimated_success[1] * 100)}`)
+                this.next_city = city;
                 action_data.needs_intel = true;
             }
             const estimated_success_avg = (estimated_success[0] + estimated_success[1]) / 2
@@ -240,7 +245,6 @@ export class BladeManager {
         }
         return action_data
     }
-
 
     get_best_action(ns, types) {
         let best_choice = { type: 'General', name: 'Training', city: 'none', weighted_success: 0 }
@@ -263,7 +267,16 @@ export class BladeManager {
         return best_choice;
     }
 
-
+    city_chaos(ns) {
+        for (const city of Utils.cities) {
+            const chaos = ns.bladeburner.getCityChaos(city)
+            if (chaos > this.max_chaos) {
+                this.messenger.add_message(`BladeManager city chaos alert`, `  City ${city} at chaos level ${chaos}`)
+                return city;
+            }
+        }
+        return false;
+    }
 
     select_next_action(ns) {
         if (ns.getPlayer().strength < 100) {
@@ -281,6 +294,8 @@ export class BladeManager {
                 this.current_interval = black_op.time_needed + 5;
                 return black_op;
             }
+            const result = this.city_chaos(ns);
+            if (result != false) return { type: 'General', name: 'Diplomacy', city: 'result' }
             let next_action
             if (this.priority(ns) == 'rank') {
                 next_action = this.get_best_rank_action(ns)

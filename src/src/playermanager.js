@@ -50,8 +50,14 @@ export class PlayerManager {
 
     finish(ns) {
         ns.tprint(`No more tasks remaining, exiting!`)
+        if (this.stop_on_finish) {
+            let result = false
+            while (!result) {
+                result = ns.stopAction()
+
+            }
+        }
         this.finished = true;
-        if (this.stop_on_finish) ns.stopAction()
     }
 
     handle_goal(ns, goal) {
@@ -217,6 +223,7 @@ class PlayerHelper {
         const gym_name = {
             Volhaven: "millenium fitness gym",
             ['Sector-12']: "powerhouse gym",
+            Aevum: "crush fitness gym",
         }
         return ns.gymWorkout(gym_name[current_city], stat, focus)
     }

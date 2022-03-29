@@ -14,6 +14,14 @@ class Init {
         ];
     }
 
+    async init(ns) {
+        ns.tprint(`Initializing files...`)
+        ns.rm('money.txt', 'home');
+        ns.rm('goals.txt', 'home');
+        await ns.write('reserved.txt', 5, "w");
+        ns.tprint(`Launching scripts...`)
+    }
+
     async run(ns) {
         console.debug(this.tasks)
         for (let task of this.tasks) {
@@ -50,14 +58,11 @@ class Init {
 /** @param {NS} ns **/
 export async function main(ns) {
     ns.disableLog("ALL");
-    ns.tprint(`Initializing files...`)
-    ns.rm('money.txt', 'home');
-    await ns.write('reserved.txt', 5, "w");
 
     const messenger = new Messenger()
     const init = new Init(ns, messenger)
 
-    ns.tprint(`Launching scripts...`)
+    await init.init(ns);
     while (!init.finished) {
         await init.run(ns)
         messenger.run(ns);

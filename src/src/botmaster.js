@@ -9,7 +9,6 @@ export class BotMaster {
         this.scanner = scanner;
         this.messenger = messenger
         this.jobs = [];
-        this.refresh(ns);
     }
 
     refresh(ns) {
@@ -22,7 +21,6 @@ export class BotMaster {
                 this.jobs.push(new Job(target));
                 let message = `  ${target.name} ${' '.repeat(20-target.name.length)} multiplier: ${Utils.pretty_num(target.growth_money_mult)}\n`
                 this.messenger.append_message('BotMaster new jobs', message)
-                console.debug(message);
             }
         }
 
@@ -36,6 +34,7 @@ export class BotMaster {
                 if (process.args.length == 0) { continue; }
                 const target_server = process.args[0];
                 const matching_jobs = this.jobs.filter(job => job.target.name == target_server);
+                if (matching_jobs.length == 0) return;
                 let proc = {
                     description: `${target_server} ${matching_jobs[0].task.type}`,
                     target: target_server,
@@ -91,7 +90,6 @@ export class BotMaster {
         job_type_order.forEach(type => {
             let type_jobs = this.jobs.filter(job => type.includes(job.task.type) && (job.task.task_threads > 0 || job.task.weaken_threads > 0));
             type_jobs.sort((a, b) => b[sort_by] - a[sort_by]);
-            console.debug(type_jobs);
             jobs_batch.push(...type_jobs);
         })
         console.debug(jobs_batch);
