@@ -15,7 +15,7 @@ export class RepManager {
         ns.run('/utils/boost.js');
         ns.stopAction();
         this.load_goals(ns)
-        if (this.buy_augs_on_exit) ns.tprint `WARN: This script will buy augs when completed, likely trigging a reset`
+        if (this.buy_augs_on_exit) ns.tprint(`WARN: This script will buy augs when completed, likely trigging a reset`)
     }
 
     run(ns) {
