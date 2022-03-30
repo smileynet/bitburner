@@ -33,7 +33,6 @@ export class AugManager {
     }
 
     async finish(ns) {
-        ns.tprint(`check: ${this.check} prompt: ${this.prompt}`)
         if (!this.check) {
             const num_augs = ns.getOwnedAugmentations(true).length - ns.getOwnedAugmentations(false).length
             let response = true
