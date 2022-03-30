@@ -56,7 +56,7 @@ export async function main(ns) {
     const messenger = new Messenger()
     const script_name = ns.args[0]
     let script_args = ns.args.slice(1)
-    script_args = script_args.length > 0 ? script_args.join(' ') : ''
+    script_args = script_args.join(' ')
     const script_launcher = new ScriptLauncher(ns, messenger, script_name, script_args)
     script_launcher.init(ns)
     while (!script_launcher.finished) {
