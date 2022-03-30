@@ -272,7 +272,7 @@ export class BladeManager {
         for (const city of Utils.cities) {
             const chaos = ns.bladeburner.getCityChaos(city)
             if (chaos > this.max_chaos) {
-                this.messenger.add_message(`BladeManager city chaos alert`, `  City ${city} at chaos level ${chaos}`)
+                this.messenger.add_message(`BladeManager city chaos alert`, `  City ${city} at chaos level ${Math.ceil(chaos)}`)
                 return city;
             }
         }
