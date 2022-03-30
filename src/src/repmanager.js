@@ -78,7 +78,8 @@ export class RepManager {
             const amount = Math.floor(ns.getServerMoneyAvailable("home") * 0.1)
             const result = ns.donateToFaction(faction_goal.faction, amount)
             let new_rep = ns.getFactionRep(this.current_goal.faction) + ns.getPlayer().workRepGained
-            ns.tprint(`Can buy favor for faction ${faction_goal.faction}. Attempted donation: ${Utils.pretty_num(amount)} New rep: ${Utils.pretty_num(new_rep)} result: ${result}`)
+            if (!result) ns.tprint(`WARN: Buying reputation failed!`)
+            ns.tprint(`Buying favor for ${faction_goal.faction}: $${Utils.pretty_num(amount)} New rep: ${Utils.pretty_num(new_rep)}`)
         }
     }
 
