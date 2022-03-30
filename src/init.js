@@ -19,6 +19,7 @@ class Init {
         ns.tprint(`Initializing files...`)
         ns.rm('money.txt', 'home');
         ns.rm('goals.txt', 'home');
+        ns.rm('cheap.txt', 'home');
         await ns.write('reserved.txt', 6, "w");
         this.tasks = this.tasks.filter(task => task.enabled)
         ns.tprint(`Launching scripts...`)
