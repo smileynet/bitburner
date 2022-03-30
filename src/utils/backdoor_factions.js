@@ -2,7 +2,8 @@ async function get_path_to_server(ns, server_name) {
     let target = server_name;
     var originating_server = ns.getCurrentServer();
     let paths = {
-        [originating_server]: "" }; // was "home"
+        [originating_server]: ""
+    }; // was "home"
     let queue = Object.keys(paths);
     let name;
     let path_to_server;
@@ -46,7 +47,7 @@ async function backdoor_server(ns, server_name) {
 export async function main(ns) {
     ns.disableLog("ALL");
     ns.connect('home');
-    var faction_servers = ["CSEC", "avmnite-02h", "I.I.I.I", "run4theh111z"]
+    var faction_servers = ["CSEC", "avmnite-02h", "I.I.I.I", "run4theh111z", "w0r1d_d43m0n"]
     for (const server_name of faction_servers) {
         if (ns.hasRootAccess(server_name)) {
             await backdoor_server(ns, server_name);

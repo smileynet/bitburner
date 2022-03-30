@@ -10,7 +10,7 @@ export class Scanner {
         this.known_servers = [];
         this.player = new Player(ns);
         this.add_server(ns, "home");
-        this.faction_servers = ["CSEC", "avmnite-02h", "I.I.I.I", "run4theh111z"]
+        this.faction_servers = ["CSEC", "avmnite-02h", "I.I.I.I", "run4theh111z", "w0r1d_d43m0n"]
     }
 
     refresh(ns) {
