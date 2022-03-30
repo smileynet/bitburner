@@ -1,72 +1,46 @@
 import Messenger from '/src/messenger'
 
 export class ScriptLauncher {
-    constructor(ns, messenger, script_names = []) {
+    constructor(ns, messenger, script_name, script_args) {
         this.messenger = messenger;
-        this.tasks = script_names.length > 0 ? this.create_tasks(ns, script_names) : [];
+        this.script_name = script_name
+        this.script_args = script_args
+        this.mem_needed = ns.getScriptRam(script_name, 'home')
+        this.finished = false;
         this.current_task = 'none'
     }
 
     init(ns) {
-        for (const task of this.tasks) {
-            if (ns.isRunning(task, 'home')) {
-                ns.kill(task, 'home')
-            }
+        if (ns.isRunning(this.script_name, 'home', this.script_args)) {
+            ns.kill(this.script_name, 'home', this.script_args)
         }
-    }
-
-    create_tasks(ns, script_names) {
-        let tasks = [];
-        script_names.forEach(script_name => {
-            let task = {
-                script: script_name,
-                running: false,
-                mem_needed: ns.getScriptRam(script_name, 'home')
-            }
-            tasks.push(task)
-        })
-        return tasks;
-    }
-
-    get finished() {
-        return this.tasks.filter(t => t.running == false).length <= 0
     }
 
     async run(ns) {
-        for (const task of this.tasks) {
-            if (task.running == false) {
-                await this.try_to_launch(ns, task)
-            } else {
-                this.messenger.add_message(`${task.script} pending`, `Free mem needed: ${task.mem_needed}`)
-            }
-        }
-    }
-
-    async try_to_launch(ns, task) {
-        if (await this.check_memory(ns, task)) {
-            await this.launch_script(ns, task)
-        }
-    }
-
-    async launch_script(ns, task) {
-        const result = ns.run(task.script)
-        if (result > 0) {
-            ns.tprint(`${task.script} launched successfully!`)
-            task.running = true;
-            await ns.write('reserved.txt', 5, "w");
+        if (await this.check_memory(ns)) {
+            await this.launch_script(ns)
         } else {
-            ns.tprint(`WARN: Could not launch ${task.script}!`)
+            this.messenger.add_message(`${this.script_name} pending`, `Free mem needed: ${this.mem_needed}`)
         }
     }
 
-    async check_memory(ns, task) {
-        if (!task.mem_needed) {
-            task.mem_needed = ns.getScriptRam(task.script, 'home');
+    async launch_script(ns) {
+        const result = ns.run(this.script_name, 1, this.script_args);
+        if (result > 0) {
+            ns.tprint(`${this.script_name} with args ${this.script_args} launched successfully!`)
+            const reserved = ns.getServerMaxRam('home') > 1024 ? 66 : 6
+            await ns.write('reserved.txt', reserved, "w");
+            this.finished = true;
+        } else {
+            ns.tprint(`WARN: Could not launch ${this.script_name} with args ${this.script_args}!`)
         }
+    }
+
+    async check_memory(ns) {
         const mem_available = ns.getServerMaxRam('home') - ns.getServerUsedRam('home');
-        if (task.mem_needed > mem_available) {
-            this.messenger.add_message(`${task.script} pending`, `Insufficient memory: ${task.mem_needed} needed, ${mem_available} available`);
-            const mem_to_reserve = Math.max(task.mem_needed, parseInt(ns.read('reserved.txt')))
+        if (this.mem_needed > mem_available) {
+            this.messenger.add_message(`${this.script_name} pending`, `Insufficient memory: ${this.mem_needed} needed, ${mem_available} available`);
+            const mem_to_reserve = Math.max(this.mem_needed, parseInt(ns.read('reserved.txt')))
             await ns.write('reserved.txt', mem_to_reserve, "w");
             return false
         } else {
@@ -80,7 +54,10 @@ export async function main(ns) {
     ns.disableLog("ALL");
 
     const messenger = new Messenger()
-    const script_launcher = new ScriptLauncher(ns, messenger, ns.args)
+    const script_name = ns.args[0]
+    let script_args = ns.args.slice(1)
+    script_args = script_args.join(' ');
+    const script_launcher = new ScriptLauncher(ns, messenger, script_name, script_args)
     script_launcher.init(ns)
     while (!script_launcher.finished) {
         await script_launcher.run(ns)

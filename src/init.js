@@ -6,11 +6,11 @@ class Init {
         this.messenger = messenger
         this.script_launcher = new ScriptLauncher(ns, messenger)
         this.tasks = [
-            { name: 'hacking', enabled: true, running: false, script: '/src/botmaster.js', requirements: 'None.' },
             { name: 'player_manager', enabled: true, running: false, script: '/src/playermanager.js', requirements: 'None.' },
             { name: 'gang', enabled: false, running: false, script: '/src/gangmanager.js', requirements: 'Need to be in a gang (-54000 karma)' },
             { name: 'corp', enabled: false, running: false, script: '/src/corpmanager.js', requirements: 'Need to form a corp ($150b)' },
             { name: 'bladeburner', enabled: true, running: false, script: '/src/blademanager.js', requirements: 'Need to join Bladeburners (100 each combat stat)' },
+            { name: 'hacking', enabled: true, running: false, script: '/src/botmaster.js', requirements: 'None.' },
         ];
     }
 
@@ -18,16 +18,17 @@ class Init {
         ns.tprint(`Initializing files...`)
         ns.rm('money.txt', 'home');
         ns.rm('goals.txt', 'home');
-        await ns.write('reserved.txt', 5, "w");
+        await ns.write('reserved.txt', 6, "w");
         this.tasks = this.tasks.filter(task => task.enabled)
         ns.tprint(`Launching scripts...`)
     }
 
     async run(ns) {
-        console.debug(this.tasks)
         for (let task of this.tasks) {
             if (task.running == false && this.can_launch(ns, task.name)) {
-                await this.script_launcher.try_to_launch(ns, task)
+                const result = ns.run(task.script)
+                ns.tprint(`Tried to launch script ${task.script} with result ${result}`)
+                if (result > 0) task.running = true;
             } else if (task.enabled) {
                 this.messenger.add_message(`${task.name} pending`, `Requirements: ${task.requirements}`)
             }
