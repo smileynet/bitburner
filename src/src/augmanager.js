@@ -1,5 +1,4 @@
 import Utils from "/src/utils.js";
-import { RepHelper } from "/src/repmanager.js"
 import Messenger from "/src/messenger.js";
 
 
@@ -24,8 +23,6 @@ export class AugManager {
     async run(ns) {
         if (this.check) {
             AugDisplayer.by_price(ns, AugHelper.get_affordable_augs(ns))
-            RepHelper.join_factions(ns);
-            await this.handle_city_factions(ns)
             await this.set_faction_goals(ns)
             this.finished = true;
         } else {
@@ -69,25 +66,7 @@ export class AugManager {
         }
     }
 
-    async handle_city_factions(ns) {
-        let city_faction = null
-        for (const city of Utils.cities) {
-            if (AugHelper.city_faction_has_unpurchased_augs(ns, city)) {
-                city_faction = {
-                    faction: city,
-                    location: city,
-                    requirements: [
-                        { type: 'cash', amount: AugHelper.get_city_faction_required_cash(city) }
-                    ]
-                }
-                break;
-            }
-        }
-        if (city_faction) {
-            ns.tprint(`Next city faction to join: ${city_faction.faction}`)
-            await ns.write(`next_city.txt`, JSON.stringify(city_faction), 'w')
-        }
-    }
+
 
     get_next_aug(ns) {
         this.augs_to_buy = AugHelper.get_available_augs(ns);
@@ -228,28 +207,9 @@ export class AugHelper {
             return false;
         }
     }
-
-    static get_city_faction_required_cash(next_city_faction) {
-        if (next_city_faction == "Sector-12") {
-            return 15000000;
-        } else if (next_city_faction == "Aevum") {
-            return 40000000;
-        } else if (next_city_faction == "Volhaven") {
-            return 50000000;
-        } else if (next_city_faction == "Chongqing") {
-            return 20000000;
-        } else if (next_city_faction == "New Tokyo") {
-            return 20000000;
-        } else if (next_city_faction == "Ishima") {
-            return 30000000;
-        } else {
-            ns.print(`ERROR: Unknown city faction!`);
-            return false;
-        }
-    }
 }
 
-export class AugDisplayer {
+class AugDisplayer {
     static by_price(ns, aug_list = []) {
         if (aug_list == []) aug_list = AugHelper.get_available_augs(ns);
 

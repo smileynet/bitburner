@@ -7,6 +7,7 @@ class Init {
         this.script_launcher = new ScriptLauncher(ns, messenger)
         this.tasks = [
             { name: 'player_manager', enabled: true, running: false, script: '/src/playermanager.js', requirements: 'None.' },
+            { name: 'faction_manager', enabled: true, running: false, script: '/src/factionmanager.js', requirements: 'None.' },
             { name: 'gang', enabled: false, running: false, script: '/src/gangmanager.js', requirements: 'Need to be in a gang (-54000 karma)' },
             { name: 'corp', enabled: false, running: false, script: '/src/corpmanager.js', requirements: 'Need to form a corp ($150b)' },
             { name: 'bladeburner', enabled: true, running: false, script: '/src/blademanager.js', requirements: 'Need to join Bladeburners (100 each combat stat)' },

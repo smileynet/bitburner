@@ -181,7 +181,7 @@ class PlayerTask {
     }
 }
 
-class PlayerHelper {
+export class PlayerHelper {
     static get travel_cost() {
         return 200000
     }

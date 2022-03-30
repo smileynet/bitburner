@@ -19,7 +19,6 @@ export class RepManager {
     }
 
     run(ns) {
-        RepHelper.join_factions(ns);
         this.handle_goals(ns);
     }
 
@@ -28,24 +27,6 @@ export class RepManager {
         if (this.buy_augs_on_exit) {
             ns.run(`/src/scriptlauncher.js`, 1, `/src/augmanager.js`)
         }
-    }
-
-    get faction_data() {
-        let faction_data = [{
-            faction: 'Tian Di Hui',
-            location: 'Chongqing',
-            requirements: [
-                { type: 'cash', amount: 1000000 },
-                { type: 'hacking', amount: 50 }
-            ]
-        }]
-
-        if (ns.fileExists('next_city.txt', 'home')) {
-            city_faction = JSON.parse(ns.read('next_city.txt'))
-            faction_data = [...faction_data, ...city_faction]
-        }
-
-        return faction_data
     }
 
     load_goals(ns) {
@@ -115,16 +96,7 @@ export class RepManager {
 }
 
 export class RepHelper {
-    static join_factions(ns) {
-        const faction_invites = ns.checkFactionInvitations();
-        for (const faction of faction_invites) {
-            if (Utils.cities.includes(faction)) {
-                continue;
-            }
-            const result = ns.joinFaction(faction);
-            ns.tprint(`Faction ${faction} joined. Result ${result}`);
-        }
-    }
+
 }
 
 /** @param {NS} ns **/
