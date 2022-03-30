@@ -75,10 +75,10 @@ export class RepManager {
 
     attempt_donation(ns, faction_goal) {
         if (ns.getFactionFavor(faction_goal.faction) >= this.faction_favor_to_buy) {
-            const amount = 100000000
-            const result = donateToFaction(faction_goal.faction, amount)
-            ns.tprint(`Can buy favor for faction ${faction_goal.faction}. Attempted donation: ${amount} result: ${result}`)
-
+            const amount = Math.floor(ns.getServerMoneyAvailable("home") * 0.1)
+            const result = ns.donateToFaction(faction_goal.faction, amount)
+            let new_rep = ns.getFactionRep(this.current_goal.faction) + ns.getPlayer().workRepGained
+            ns.tprint(`Can buy favor for faction ${faction_goal.faction}. Attempted donation: ${Utils.pretty_num(amount)} New rep: ${Utils.pretty_num(new_rep)} result: ${result}`)
         }
     }
 

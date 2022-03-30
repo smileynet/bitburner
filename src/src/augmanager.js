@@ -3,9 +3,10 @@ import Messenger from "/src/messenger.js";
 
 
 export class AugManager {
-    constructor(messenger, check) {
+    constructor(messenger, check, prompt) {
         this.messenger = messenger;
         this.check = check;
+        this.prompt = prompt
         this.max_rep_default = 10000
         this.min_augs = 5
         this.finished = false;
@@ -31,8 +32,29 @@ export class AugManager {
         }
     }
 
+    async finish(ns) {
+        ns.tprint(`check: ${this.check} prompt: ${this.prompt}`)
+        if (!this.check) {
+            const num_augs = ns.getOwnedAugmentations(true).length - ns.getOwnedAugmentations(false).length
+            let response = true
+            if (this.prompt) {
+                response = await ns.prompt(`All available augs purchased. ${num_augs} augs to install.\n\n${' '.repeat(18)}Install now?`)
+            }
+            if (response && num_augs > 0) {
+                await ns.write('last_reboot.txt', new Date().toLocaleString(), 'w')
+                ns.installAugmentations('init.js')
+            } else {
+                ns.tprint(`Exiting without install. ${num_augs} ready to install.`)
+            }
+        }
+    }
+
     async set_faction_goals(ns, max_rep = this.max_rep_default) {
-        if (max_rep > 1000000000000) return // prevent infinity
+        const rep_ceiling = 1000000000000
+        if (max_rep > 1000000000000) {
+            this.min_augs -= 1
+            await this.set_faction_goals(ns, rep_ceiling - 1)
+        } // prevent infinity
         const augs_by_faction = AugHelper.get_unowned_augs_by_faction(ns);
         if (ns.getPlayer().factions.length < 0) {
             ns.tprint(`WARN: No augs found! Are you in any factions?`)
@@ -70,18 +92,23 @@ export class AugManager {
 
     get_next_aug(ns) {
         this.augs_to_buy = AugHelper.get_available_augs(ns);
+        if (this.augs_to_buy.length <= 0) {
+            ns.tprint(`All available augs purchased, exiting!`)
+            this.finished = true;
+            return true
+        }
         this.augs_to_buy.sort((a, b) => b.price - a.price);
         this.next_aug = this.augs_to_buy.shift();
-        while (this.start_with_affordable &&
-            this.next_aug.price > ns.getServerMoneyAvailable('home') &&
-            this.next_aug.name != 'NeuroFlux Governor') {
+        if (this.next_aug.name == 'NeuroFlux Governor') return
+        while (this.next_aug && this.start_with_affordable &&
+            this.next_aug.price > ns.getServerMoneyAvailable('home')) {
             this.next_aug = this.augs_to_buy.shift();
         }
     }
 
     buy_augs(ns) {
         if (!this.augs_to_buy || this.augs_to_buy.length <= 0) {
-            this.get_next_aug(ns)
+            if (this.get_next_aug(ns)) return
         }
         if (this.next_aug.price <= ns.getServerMoneyAvailable('home')) {
             this.buy_aug(ns)
@@ -241,24 +268,14 @@ export async function main(ns) {
     const messenger = new Messenger();
     const check = ns.args[0] == 'check' ? true : false;
     const prompt = ns.args[0] == 'prompt' ? true : false;
-    const factionManager = new AugManager(messenger, check)
+    const factionManager = new AugManager(messenger, check, prompt)
     factionManager.init(ns)
     while (!factionManager.finished) {
         await factionManager.run(ns);
         messenger.run(ns);
         await ns.sleep(1000);
     }
-    if (check) {
-        const num_augs = ns.getOwnedAugmentations(true).length - ns.getOwnedAugmentations(false).length
-        let response = true
-        if (prompt) {
-            response = await ns.prompt(`All available augs purchased. ${num_augs} augs to install.\n\n${' '.repeat(18)}Install now?`)
-        }
-        if (response) {
-            await ns.write('last_reboot.txt', new Date().toLocaleString(), 'w')
-            ns.installAugmentations('init.js')
-        }
-    }
+    await factionManager.finish(ns);
 }
 
 export default AugManager;

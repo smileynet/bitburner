@@ -44,6 +44,7 @@ class Init {
         switch (task) {
             case 'hacking':
             case 'player_manager':
+            case 'faction_manager':
                 return true;
             case 'corp':
                 return ns.getPlayer().hasCorporation;
