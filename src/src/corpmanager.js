@@ -7,7 +7,6 @@ export class CorpManager {
         this.corp_api = eval('ns.corporation');
         this.fraud = false;
         this.buyback_price = 1000;
-        this.base_investment_amount = 1000000000 // 1 billion
         this.finished = false
         this.completed = false;
         this.corp_upgrades_completed = false;
@@ -37,7 +36,7 @@ export class CorpManager {
         this.name = this.corp.name
     }
 
-    async run(ns) {
+    run(ns) {
         this.stock_buyback(ns)
         this.handle_divisions(ns)
         this.corp_upgrades(ns)
@@ -193,6 +192,7 @@ class DivisionManager {
             priority_multiplier: 2,
             high_priority: high_priority,
         }
+        this.base_product_investment = 1000000000 // 1 billion
         this.completed = false;
         this.advert_completed = false;
         this.fraud = false;
@@ -231,10 +231,13 @@ class DivisionManager {
 
     get max_products() {
         let max_products = 3;
-        if (this.corp_api.hasResearched(this.name, 'uPgrade: Capacity.II')) {
-            max_products = 5;
-        } else if (this.corp_api.hasResearched(this.name, 'uPgrade: Capacity.I')) {
-            max_products = 4;
+        const corp_api_unlocked = this.corp_api.hasUnlockUpgrade('Office API')
+        if (corp_api_unlocked) {
+            if (this.corp_api.hasResearched(this.name, 'uPgrade: Capacity.II')) {
+                max_products = 5;
+            } else if (this.corp_api.hasResearched(this.name, 'uPgrade: Capacity.I')) {
+                max_products = 4;
+            }
         }
         return max_products;
     }
@@ -310,23 +313,23 @@ class DivisionManager {
     }
 
     create_products(ns) {
-        if (!this.makes_product) return
+        if (!this.makes_products) return
         if (!this.product_under_development() &&
             this.products.length < this.max_products) {
             let current_version = this.get_highest_product_version();
             const new_version = current_version + 1
-            const new_product_cost = this.base_investment_amount * 2 * new_version
+            const new_product_cost = this.base_product_investment * 2 * new_version
             if (new_product_cost <= CorpHelper.current_money(ns)) {
                 const product_name = `${this.type}-v${new_version}`
-                this.corp_api.makeProduct(this.name, 'Sector-12', `${product_name}`, this.base_investment_amount, this.base_investment_amount)
-                ns.tprint(`Beginning development on ${product_name}`)
+                this.corp_api.makeProduct(this.name, 'Sector-12', `${product_name}`, this.base_product_investment, this.base_product_investment)
+                ns.tprint(`Beginning development of ${product_name}`)
             }
         }
     }
 
     product_under_development() {
         for (const product_name of this.products) {
-            const product = getProduct(this.name, product_name)
+            const product = this.corp_api.getProduct(this.name, product_name)
             if (product.developmentProgress < 100) {
                 return true
             }
@@ -489,7 +492,7 @@ class CityManager {
         this.upgrade_office(ns)
     }
 
-    async upgrade_office(ns) {
+    upgrade_office(ns) {
         if (this.office_complete) return
         let target_office_size = this.opts.max_office_size
         if (this.opts.high_priority) target_office_size *= this.priority_multiplier
@@ -638,7 +641,7 @@ export async function main(ns) {
     let corp_manager = new CorpManager(ns, messenger);
     corp_manager.init(ns)
     while (!corp_manager.finished) {
-        await corp_manager.run(ns);
+        corp_manager.run(ns);
         messenger.run(ns);
         await ns.sleep(1000);
     }
