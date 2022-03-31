@@ -9,17 +9,23 @@ export class PlayerManager {
         this.bladeburner_min_stats = 100;
         this.finished = false;
         this.stop_on_finish = true;
-        this.goals = [
+    }
+
+    async init(ns) {
+        const filename = `player_goals.txt`
+        let goals
+        if (ns.fileExists(filename)) {
+            goals = JSON.parse(ns.read(filename))
+        }
+
+        goals = goals || [
             { name: 'basic_hacking', enabled: true, priority: 100 },
             { name: 'gang_factions', enabled: true, priority: 20 },
             { name: 'gang', enabled: false, priority: 30 },
             { name: 'corp', enabled: false, priority: 50 },
             { name: 'bladeburner', enabled: true, priority: 80 },
         ];
-    }
-
-    async init(ns) {
-        let goals = this.goals.filter(goal => goal.enabled);
+        goals = this.goals.filter(goal => goal.enabled);
         goals.forEach(goal => {
             this.handle_goal(ns, goal);
         })
@@ -73,9 +79,7 @@ export class PlayerManager {
             case 'bladeburner':
                 goal_is_finished = () => ns.getPlayer().inBladeburner
                 if (!goal_is_finished) {
-                    Utils.combat_stats.forEach(stat => {
-                        this.add_task(ns, new PlayerTask(this.messenger, goal.priority, 'stat', this.bladeburner_min_stats, stat))
-                    })
+                    this.train_combat_stats(ns, goal.priority);
                     this.add_task(ns, new PlayerTask(this.messenger, goal.priority - 10, 'init_group', 100, 'bladeburner', goal_is_finished))
                 } else {
                     ns.tprint(`Already in bladeburners, skipping goal.`)
@@ -94,6 +98,12 @@ export class PlayerManager {
                 ns.tprint('WARN: Unknown goal!')
                 console.warn('Unknown goal!')
         }
+    }
+
+    train_combat_stats(ns, priority = 50) {
+        Utils.combat_stats.forEach(stat => {
+            this.add_task(ns, new PlayerTask(this.messenger, train_combat_stats(ns, priority = 50), 'stat', this.bladeburner_min_stats, stat));
+        });
     }
 
     add_task(ns, player_task) {
@@ -122,7 +132,6 @@ class PlayerTask {
     is_finished(ns) {
         let message;
         switch (this.type) {
-
             case 'stat':
                 message = `goal: ${this.value} current: ${ns.getPlayer()[this.subtype]} result: ${this.condition(ns.getPlayer()[this.subtype], this.value)}`
                 this.messenger.add_message(`PlayerTask ${this.type} ${this.subtype} update:`, message);

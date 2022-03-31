@@ -7,10 +7,12 @@ export class FactionManager {
     constructor(ns, messenger) {
         this.messenger = messenger
         this.finished = false;
+        this.join_criminal_orgs = true;
     }
 
     init(ns) {
         this.init_faction_data(ns);
+        this.handle_additional_factions(ns);
         this.handle_city_factions(ns);
     }
 
@@ -18,6 +20,11 @@ export class FactionManager {
         this.handle_current_faction(ns)
         this.join_factions(ns);
         this.display_current_target(ns)
+    }
+
+    finish(ns) {
+        ns.tprint(`All targeted factions joining. Exiting & running AugManager to set faction rep goals.`)
+        ns.run(`/src/scriptlauncher.js`, 1, `/src/augmanager.js`, `check`)
     }
 
     init_faction_data(ns) {
@@ -34,8 +41,50 @@ export class FactionManager {
         this.get_next_faction(ns)
     }
 
+    handle_additional_factions(ns) {
+        if (this.join_criminal_orgs) {
+            let criminal_data = [{
+                faction: 'Slum Snakes',
+                location: 'none',
+                script: '/utils/do_crime.js',
+                requirements: [
+                    { type: 'cash', amount: 1000000 },
+                    { type: 'karma', amount: -9 }
+                ]
+            }, {
+                faction: 'Tetrads',
+                location: 'Chongqing',
+                script: '/utils/do_crime.js',
+                requirements: [
+                    { type: 'combat', amount: 75 },
+                    { type: 'karma', amount: -18 }
+                ]
+            }]
+        }
+    }
+
     handle_current_faction(ns) {
-        let completed = true
+        this.check_completion(ns);
+        this.handle_current_actions(ns);
+    }
+
+    handle_current_actions(ns) {
+        if (this.next_faction.script && !ns.isRunning(this.next_faction.script, 'home')) {
+            ns.tprint(`Launching ${this.next_faction.script} for faction ${this.next_faction.faction}`)
+            ns.run('/src/scriptlauncher.js', 1, this.next_faction.script)
+        }
+        // TODO: Handle stat gains
+    }
+
+    finish_current_script(ns) {
+        if (this.next_faction.script && ns.isRunning(this.next_faction.script, 'home')) {
+            ns.tprint(`Killing ${this.next_faction.script} for faction ${this.next_faction.faction}`)
+            ns.kill(this.next_faction.script, 'home', '')
+        }
+    }
+
+    check_completion(ns) {
+        let completed = true;
         for (const requirement of this.next_faction.requirements) {
             switch (requirement.type) {
                 case 'cash':
@@ -48,14 +97,27 @@ export class FactionManager {
                         completed = false;
                     }
                     break;
+                case 'karma':
+                    if (ns.heart.break() < requirement.amount) {
+                        completed = false;
+                    }
+                    break;
+                case 'combat':
+                    for (const stat of Utils.combat_stats) {
+                        if (ns.getPlayer()[stat] < requirement.amount) {
+                            completed = false;
+                        }
+                    }
+                    break;
                 default:
-                    ns.tprint(`ERROR: requirement type not recognized`)
+                    ns.tprint(`ERROR: requirement type not recognized`);
                     break;
             }
         }
         if (completed) {
-            this.messenger.add_message('FactionManager faction ready to join', `Requirements for joining ${this.next_faction.faction} met. Traveling to ${this.next_faction.location}`)
-            this.join_next_faction(ns)
+            this.finish_current_script(ns)
+            this.messenger.add_message('FactionManager faction ready to join', `Requirements for joining ${this.next_faction.faction} met. Traveling to ${this.next_faction.location}`);
+            this.join_next_faction(ns);
         }
     }
 
@@ -69,7 +131,10 @@ export class FactionManager {
     }
 
     join_next_faction(ns) {
-        const result = PlayerHelper.travel_to(ns, this.next_faction.location);
+        let result = 'none'
+        if (this.next_faction.location != 'none') {
+            result = PlayerHelper.travel_to(ns, this.next_faction.location);
+        }
         if (result == this.next_faction.location) {
             if (ns.getPlayer().factions.includes(this.next_faction.faction)) {
                 ns.tprint(`Faction ${this.next_faction.faction} joined! Moving to next faction target.`)
@@ -153,6 +218,7 @@ export async function main(ns) {
         messenger.run(ns);
         await ns.sleep(1000);
     }
+    faction_manager.finish(ns)
 }
 
 export default FactionManager;
