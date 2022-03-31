@@ -382,16 +382,16 @@ class DivisionManager {
             this.research['Market-TA.I'].unlocked)
         const market_ta_cost = 70000
         if (this.can_research('Hi-Tech R&D Laboratory')) {
-            this.unlock_research('Hi-Tech R&D Laboratory');
+            this.unlock_research(ns, 'Hi-Tech R&D Laboratory');
         } else if (!market_ta_unlocked && this.research_amount >= market_ta_cost) {
-            this.unlock_research('Market-TA.I');
-            this.unlock_research('Market-TA.II');
+            this.unlock_research(ns, 'Market-TA.I');
+            this.unlock_research(ns, 'Market-TA.II');
         } else
         if (market_ta_unlocked && this.makes_products) {
             const product_research = ['uPgrade: Fulcrum', 'uPgrade: Capacity.I', 'uPgrade: Capacity.II']
             for (const research_name of product_research) {
                 if (this.can_research(research_name)) {
-                    this.unlock_research(research_name);
+                    this.unlock_research(ns, research_name);
                 }
             }
         }
@@ -406,7 +406,7 @@ class DivisionManager {
         }
     }
 
-    unlock_research(research_name) {
+    unlock_research(ns, research_name) {
         const result = this.corp_api.research(this.name, research_name);
         this.research[research_name].unlocked = result;
         ns.tprint(`${this.name} has researched ${research_name}, result: ${result}`)
