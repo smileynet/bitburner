@@ -4,13 +4,12 @@ import ScriptLauncher from '/src/scriptlauncher'
 class Init {
     constructor(ns, messenger) {
         this.messenger = messenger
-        this.script_launcher = new ScriptLauncher(ns, messenger)
         this.tasks = [
             { name: 'player_manager', enabled: true, running: false, script: '/src/playermanager.js', requirements: 'None.' },
-            { name: 'faction_manager', enabled: true, running: false, script: '/src/factionmanager.js', requirements: 'None.' },
+            { name: 'faction_manager', enabled: true, running: false, script: '/src/factionmanager.js', requirements: 'After player manager.' },
             { name: 'gang', enabled: false, running: false, script: '/src/gangmanager.js', requirements: 'Need to be in a gang (-54000 karma)' },
-            { name: 'corp', enabled: false, running: false, script: '/src/corpmanager.js', requirements: 'Need to form a corp ($150b)' },
-            { name: 'bladeburner', enabled: true, running: false, script: '/src/blademanager.js', requirements: 'Need to join Bladeburners (100 each combat stat)' },
+            { name: 'corp', enabled: true, running: false, script: '/src/corpmanager.js', requirements: 'Need to form a corp ($150b)' },
+            { name: 'bladeburner', enabled: true, running: false, script: '/src/blademanager.js', requirements: 'Need to join Bladeburners  (100 each combat stat), runs after player manager completes.' },
             { name: 'hacking', enabled: true, running: false, script: '/src/botmaster.js', requirements: 'None.' },
         ];
     }
@@ -27,10 +26,12 @@ class Init {
 
     async run(ns) {
         for (let task of this.tasks) {
-            if (task.running == false && this.can_launch(ns, task.name)) {
-                const result = ns.run(task.script)
-                ns.tprint(`Tried to launch script ${task.script} with result ${result}`)
-                if (result > 0) task.running = true;
+            if (!task.running) {
+                task.running = ns.isRunning(task.script)
+            }
+            if (task.running == false && this.can_launch(ns, task.name) && !this.is_pending(ns, task)) {
+                ns.run(`/src/scriptlauncher.js`, 1, task.script)
+                this.messenger.add_message(`${task.name} launch`, `Tried to launch script ${task.script}.`)
             } else if (task.enabled) {
                 this.messenger.add_message(`${task.name} pending`, `Requirements: ${task.requirements}`)
             }
@@ -41,16 +42,25 @@ class Init {
         return this.tasks.filter(t => t.running == false && t.enabled == true).length <= 0
     }
 
+    is_pending(ns, task) {
+        if (ns.isRunning(`/src/scriptlauncher.js`, 'home', task.script)) {
+            return true
+        } else {
+            return false
+        }
+    }
+
     can_launch(ns, task) {
         switch (task) {
             case 'hacking':
             case 'player_manager':
-            case 'faction_manager':
                 return true;
+            case 'faction_manager':
+                return !ns.isRunning('/src/playermanager.js')
             case 'corp':
                 return ns.getPlayer().hasCorporation;
             case 'bladeburner':
-                return ns.getPlayer().inBladeburner;
+                return (ns.getPlayer().inBladeburner && !ns.isRunning('/src/playermanager.js'));
             case 'gang':
                 return ns.gang.inGang();
             default:

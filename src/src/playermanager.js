@@ -18,14 +18,14 @@ export class PlayerManager {
             goals = JSON.parse(ns.read(filename))
         }
 
-        goals = goals || [
+        goals = [
             { name: 'basic_hacking', enabled: true, priority: 100 },
             { name: 'gang_factions', enabled: true, priority: 20 },
             { name: 'gang', enabled: false, priority: 30 },
             { name: 'corp', enabled: false, priority: 50 },
             { name: 'bladeburner', enabled: true, priority: 80 },
         ];
-        goals = this.goals.filter(goal => goal.enabled);
+        goals = goals.filter(goal => goal.enabled);
         goals.forEach(goal => {
             this.handle_goal(ns, goal);
         })
@@ -79,7 +79,7 @@ export class PlayerManager {
             case 'bladeburner':
                 goal_is_finished = () => ns.getPlayer().inBladeburner
                 if (!goal_is_finished) {
-                    this.train_combat_stats(ns, goal.priority);
+                    this.train_combat_stats(ns, goal.priority, this.bladeburner_min_stats);
                     this.add_task(ns, new PlayerTask(this.messenger, goal.priority - 10, 'init_group', 100, 'bladeburner', goal_is_finished))
                 } else {
                     ns.tprint(`Already in bladeburners, skipping goal.`)
@@ -87,9 +87,11 @@ export class PlayerManager {
                 break;
             case 'gang_factions':
                 const karma_goal = -90
+                const min_stat_level = 100
                 goal_is_finished = () => ns.heart.break() <= karma_goal
                 if (!goal_is_finished()) {
-                    this.add_task(ns, new PlayerTask(this.messenger, goal.priority, 'external_script', karma_goal, 'karma', goal_is_finished, '/utils/do_crime.js'))
+                    this.train_combat_stats(ns, goal.priority, min_stat_level)
+                    this.add_task(ns, new PlayerTask(this.messenger, goal.priority - 10, 'external_script', karma_goal, 'karma', goal_is_finished, '/utils/do_crime.js'))
                 } else {
                     ns.tprint(`Sufficiently bad karma for gang faction invites, skipping goal.`)
                 }
@@ -100,9 +102,9 @@ export class PlayerManager {
         }
     }
 
-    train_combat_stats(ns, priority = 50) {
+    train_combat_stats(ns, priority = 50, stat_level = 100) {
         Utils.combat_stats.forEach(stat => {
-            this.add_task(ns, new PlayerTask(this.messenger, train_combat_stats(ns, priority = 50), 'stat', this.bladeburner_min_stats, stat));
+            this.add_task(ns, new PlayerTask(this.messenger, priority, 'stat', stat_level, stat));
         });
     }
 
