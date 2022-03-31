@@ -13,6 +13,8 @@ export class ScriptLauncher {
     init(ns) {
         if (ns.isRunning(this.script_name, 'home', this.script_args)) {
             ns.kill(this.script_name, 'home', this.script_args)
+        } else if (ns.isRunning(this.script_name, 'home')) {
+            ns.kill(this.script_name, 'home')
         }
     }
 
@@ -25,7 +27,7 @@ export class ScriptLauncher {
     }
 
     async launch_script(ns) {
-        const result = ns.run(this.script_name, 1, this.script_args);
+        const result = ns.run(this.script_name, 1, ...this.script_args);
         if (result > 0) {
             ns.tprint(`${this.script_name} with args ${this.script_args} launched successfully!`)
             const reserved = ns.getServerMaxRam('home') > 1024 ? 66 : 6
