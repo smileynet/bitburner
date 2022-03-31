@@ -31,7 +31,7 @@ export class CorpManager {
             }
         }
         for (const division of this.divisions) {
-            division.init();
+            division.init(ns);
         }
         this.name = this.corp.name
     }
@@ -188,7 +188,7 @@ class DivisionManager {
             advert_max: 10,
             target_warehouse_utilization: 0.7,
             target_warehouse_level: 10,
-            max_office_size: 60,
+            max_office_size: 9,
             priority_multiplier: 2,
             high_priority: high_priority,
         }
@@ -288,12 +288,13 @@ class DivisionManager {
             let info = {}
             info.unlocked = this.corp_api.hasResearched(this.name, research_name);
             info.cost = this.corp_api.getResearchCost(this.name, research_name);
-            research[research_name] = info
+            this.research[research_name] = info
         }
     }
 
     add_city_object(ns, city_name) {
         const city = new CityManager(ns, this, city_name);
+        city.init(ns);
         this.cities.push(city);
     }
 
@@ -412,7 +413,7 @@ class DivisionManager {
     }
 
     upgrade_advert(ns) {
-        if (!city_upgrades_finished || this.advert_completed) return
+        if (!this.city_upgrades_finished || this.advert_completed) return
         let target_advert_level = this.opts.advert_max
         if (this.opts.high_priority) target_advert_level *= this.opts.priority_multiplier
         let hire_advert_count = this.corp_api.getHireAdVertCount(this.name)
@@ -439,20 +440,26 @@ class CityManager {
         this.preferred_material = CorpHelper.preferred_material(this.division_type);
         this.consumed_materials = CorpHelper.materials_consumed(this.division_type)
         this.produced_materials = CorpHelper.materials_produced(this.division_type);
-        this.office_complete = false
+        this.office_completed = false
         this.warehouse_completed = false;
         this.fraud = false;
         this.buying_preferred = false
         this.selling_preferred = false
     }
 
+    init(ns) {
+        this.check_office_completion(ns)
+        this.check_warehouse_completion(ns)
+    }
+
     run(ns) {
         this.handle_materials(ns)
         if (!this.completed) {
+            this.check_completion(ns)
             this.handle_warehouse_api(ns)
             this.handle_office_api(ns)
-            this.check_completion(ns)
         }
+        this.status_update(ns)
     }
 
     get warehouse() {
@@ -471,44 +478,85 @@ class CityManager {
         return this.corp_api.getCorporation()
     }
 
+    get target_office_size() {
+        let target_office_size = this.opts.max_office_size;
+        if (this.opts.high_priority)
+            target_office_size *= this.opts.priority_multiplier;
+        return target_office_size;
+    }
+
+    get target_warehouse_level() {
+        let target_warehouse_level = this.opts.target_warehouse_level;
+        if (this.opts.high_priority)
+            target_warehouse_level *= this.opts.priority_multiplier;
+        return target_warehouse_level;
+    }
+
+    status_update(ns) {
+        this.messenger.add_message(`${this.division_name} ${this.name} upgrade completion`,
+            `  Warehouse: ${this.warehouse_completed}   Office: ${this.office_completed}`);
+    }
+
     check_completion(ns) {
         if (!this.warehouse_completed) return false
-        if (!this.office_complete) return false
+        if (!this.office_completed) return false
         ns.tprint(`${this.division_name} ${this.name} all upgrades complete!`)
         this.completed = true
     }
 
     handle_warehouse_api(ns) {
         if (!this.corp_api.hasUnlockUpgrade('Warehouse API')) return
-        if (!this.has_warehouse) {
-            this.buy_warehouse(ns)
-        } else {
-            this.upgrade_warehouse(ns)
+        if (!this.warehouse_completed) {
+            if (!this.has_warehouse) {
+                this.buy_warehouse(ns)
+            } else {
+                this.upgrade_warehouse(ns)
+            }
+            this.check_warehouse_completion(ns)
         }
     }
 
     handle_office_api(ns) {
         if (!this.corp_api.hasUnlockUpgrade('Office API')) return
-        this.upgrade_office(ns)
+        if (!this.office_completed) {
+            this.upgrade_office(ns)
+            this.check_office_completion(ns)
+        }
+
     }
 
+    check_office_completion(ns) {
+        this.messenger.add_message(`${this.division_name} ${this.name} office status`,
+            `  Current office level: ${this.office.size}   target: ${this.target_office_size}`);
+        if (this.office.size >= this.target_office_size) {
+            ns.tprint(`${this.division_name} office in ${this.name} at target level: ${this.target_office_size}.`)
+            this.office_completed = true
+        }
+    }
+
+    check_warehouse_completion(ns) {
+        this.messenger.add_message(`${this.division_name} ${this.name} warehouse status`,
+            `  Current warehouse level: ${this.warehouse.level}   target: ${this.target_warehouse_level}`);
+        if (this.warehouse.level >= this.target_warehouse_level) {
+            this.warehouse_complete = true
+            ns.tprint(`${this.division_name} warehouse in ${this.name} at target level: ${this.target_warehouse_level}.`)
+
+        }
+    }
+
+
     upgrade_office(ns) {
-        if (this.office_complete) return
-        let target_office_size = this.opts.max_office_size
-        if (this.opts.high_priority) target_office_size *= this.priority_multiplier
-        while (this.office.size < target_office_size &&
+        while (this.office.size < this.target_office_size &&
             this.corp_api.getOfficeSizeUpgradeCost(this.division_name, this.name, 3) <= CorpHelper.current_money(ns)) {
             this.corp_api.upgradeOfficeSize(this.division_name, this.name, 3)
-            ns.tprint(`${this.division_name} ${this.name} office size upgraded to ${office.size}`)
+            ns.tprint(`${this.division_name} ${this.name} office size upgraded to ${this.office.size}`)
         }
         if (this.office.employees.length === this.office.size) return;
         for (let i = this.office.employees.length; i < this.office.size; i++) this.corp_api.hireEmployee(this.division_name, this.name);
-        if (this.office.size > target_office_size) {
-            this.office_complete = true
-            ns.tprint(`${this.division_name} office in ${this.name} upgraded to target level: ${target_office_size}.`)
-        }
         ns.run('/src/scriptlauncher.js', 1, '/utils/office_assignment.js', this.division_name, this.name)
     }
+
+
 
     handle_materials(ns) {
         if (this.corp.state != 'START') return;
@@ -618,19 +666,13 @@ class CityManager {
 
     upgrade_warehouse(ns) {
         if (this.warehouse_complete) return
-        let target_warehouse_level = this.opts.target_warehouse_level
-        if (this.opts.high_priority) target_warehouse_level *= this.opts.priority_multiplier
-        if (this.warehouse.level < target_warehouse_level) {
-            if (this.warehouse_utilization >= this.target_warehouse_utilization) {
-                const cost = this.corp_api.getUpgradeWarehouseCost(this.division_name, this.name);
-                if (cost < CorpHelper.current_money(ns)) {
-                    this.corp_api.upgradeWarehouse(this.division_name, this.name);
-                    ns.tprint(`Warehouse upgraded to ${this.warehouse.level} for ${this.division_name} in ${this.name}.`)
-                }
+        if (this.warehouse.level < this.target_warehouse_level &&
+            this.warehouse_utilization >= this.opts.target_warehouse_utilization) {
+            const cost = this.corp_api.getUpgradeWarehouseCost(this.division_name, this.name);
+            if (cost < CorpHelper.current_money(ns)) {
+                this.corp_api.upgradeWarehouse(this.division_name, this.name);
+                ns.tprint(`Warehouse upgraded to ${this.warehouse.level} for ${this.division_name} in ${this.name}.`)
             }
-        } else {
-            this.warehouse_complete = true
-            ns.tprint(`${this.division_name} warehouse in ${this.name} upgraded to target level: ${target_warehouse_level}.`)
         }
     }
 }
