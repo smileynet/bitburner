@@ -22,6 +22,7 @@ export class BotMaster {
     }
 
     handle_active_threads(ns) {
+
         let all_procs = [];
         for (const bot of this.bots) {
             const running_procs = ns.ps(bot.name);
@@ -29,7 +30,7 @@ export class BotMaster {
                 if (process.args.length == 0) { continue; }
                 const target_server = process.args[0];
                 const matching_jobs = this.jobs.filter(job => job.target.name == target_server);
-                if (matching_jobs.length == 0) return;
+                if (matching_jobs.length == 0) continue;
                 let proc = {
                     description: `${target_server} ${matching_jobs[0].task.type}`,
                     target: target_server,
@@ -51,7 +52,6 @@ export class BotMaster {
                 }
             }
         }
-
         this.display_threads(all_procs);
     }
 
@@ -102,11 +102,11 @@ export class BotMaster {
         let jobs_batch = [];
         job_type_order.forEach(type => {
             let type_jobs = this.jobs.filter(job => type.includes(job.task.type) && (job.task.task_threads > 0 || job.task.weaken_threads > 0));
-            type_jobs.sort((a, b) => b[sort_by] - a[sort_by]);
+            type_jobs.sort((a, b) => b.target[sort_by] - a.target[sort_by]);
             jobs_batch.push(...type_jobs);
         })
+        console.debug(`jobs_batch length: ${jobs_batch.length}`)
         console.debug(jobs_batch);
-        console.log(`jobs_batch length: ${jobs_batch.length}`)
         return jobs_batch;
     }
 }
