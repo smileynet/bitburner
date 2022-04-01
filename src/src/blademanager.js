@@ -118,7 +118,7 @@ export class BladeManager {
         const [current_stamina, max_stamina] = ns.bladeburner.getStamina();
         const high_stamina = max_stamina * 0.8
         const low_stamina = max_stamina * 0.6
-        this.messenger.add_message(`BladeManager Stamina Update`, `  current stamina: ${Math.floor(current_stamina)} recovering: ${this.recovering}\n  low stamina: ${Math.floor(low_stamina)} high stamina: ${Math.floor(high_stamina)}`)
+        this.messenger.add_message(`BladeManager Stamina Update`, `  current stamina: ${Math.floor(current_stamina)}   recovering: ${this.recovering}\n  low stamina: ${Math.floor(low_stamina)}   high stamina: ${Math.floor(high_stamina)}`)
         if (this.recovering) {
             if (high_stamina > current_stamina) {
                 return true;
@@ -228,7 +228,7 @@ export class BladeManager {
             ns.bladeburner.switchCity(city);
             const estimated_success = ns.bladeburner.getActionEstimatedSuccessChance(type, action)
             if (estimated_success[1] - estimated_success[0] > max_intel_spread && !this.is_intel_action(action)) {
-                this.messenger.add_message(`BladeMaster insufficient intel`, `  Action:${action}   City:${city}` +
+                this.messenger.add_message(`BladeMaster insufficient intel`, `  Action: ${action}   City: ${city}` +
                     `   low: ${Math.floor(estimated_success[0] * 100)}   high: ${Math.floor(estimated_success[1] * 100)}`)
                 this.next_city = city;
                 action_data.needs_intel = true;
