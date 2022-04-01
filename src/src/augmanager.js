@@ -267,14 +267,14 @@ export async function main(ns) {
     const messenger = new Messenger();
     const check = ns.args[0] == 'check' ? true : false;
     const prompt = ns.args[0] == 'prompt' ? true : false;
-    const factionManager = new AugManager(messenger, check, prompt)
-    factionManager.init(ns)
-    while (!factionManager.finished) {
-        await factionManager.run(ns);
+    const augManager = new AugManager(messenger, check, prompt)
+    augManager.init(ns)
+    while (!augManager.finished) {
+        await augManager.run(ns);
         messenger.run(ns);
         await ns.sleep(1000);
     }
-    await factionManager.finish(ns);
+    await augManager.finish(ns);
 }
 
 export default AugManager;
