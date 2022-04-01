@@ -13,11 +13,16 @@ export class AugManager {
     }
 
     init(ns) {
-        console.debug('Init')
         if (ns.fileExists('cheap.txt')) {
             this.start_with_affordable = true
         } else {
             this.start_with_affordable = false
+        }
+
+        if (this.check) {
+            ns.tprint(`Updating rep goals!`)
+        } else {
+            ns.tprint(`Buying augs!`)
         }
     }
 
