@@ -27,7 +27,7 @@ export class ScriptLauncher {
     }
 
     async launch_script(ns) {
-        const result = ns.run(this.script_name, 1, ...this.script_args);
+        const result = ns.run(this.script_name, 1, this.script_args);
         if (result > 0) {
             ns.tprint(`${this.script_name} with args ${this.script_args} launched successfully!`)
             const reserved = ns.getServerMaxRam('home') > 1024 ? 66 : 6
@@ -58,7 +58,7 @@ export async function main(ns) {
     const messenger = new Messenger()
     const script_name = ns.args[0]
     let script_args = ns.args.slice(1)
-    script_args = script_args.join(' ')
+    script_args = script_args.join('')
     const script_launcher = new ScriptLauncher(ns, messenger, script_name, script_args)
     script_launcher.init(ns)
     while (!script_launcher.finished) {
