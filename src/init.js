@@ -6,6 +6,7 @@ class Init {
         this.messenger = messenger
         this.tasks = [
             { name: 'player_manager', enabled: true, running: false, script: '/src/playermanager.js', requirements: 'None.' },
+            { name: 'hud', enabled: true, running: false, script: '/utils/hud.js', requirements: 'None.' },
             { name: 'faction_manager', enabled: true, running: false, script: '/src/factionmanager.js', requirements: 'After player manager.' },
             { name: 'gang', enabled: false, running: false, script: '/src/gangmanager.js', requirements: 'Need to be in a gang (-54000 karma)' },
             { name: 'corp', enabled: true, running: false, script: '/src/corpmanager.js', requirements: 'Need to form a corp ($150b)' },
@@ -26,10 +27,11 @@ class Init {
 
     async run(ns) {
         for (let task of this.tasks) {
-            if (!task.running) {
-                task.running = ns.isRunning(task.script)
+            if (task.pending && !this.is_pending(ns, task)) {
+                task.running = true
             }
             if (task.running == false && this.can_launch(ns, task.name) && !this.is_pending(ns, task)) {
+                task.pending = true
                 ns.run(`/src/scriptlauncher.js`, 1, task.script)
                 this.messenger.add_message(`${task.name} launch`, `Tried to launch script ${task.script}.`)
             } else if (task.enabled) {
@@ -39,7 +41,7 @@ class Init {
     }
 
     get finished() {
-        return this.tasks.filter(t => t.running == false && t.enabled == true).length <= 0
+        return this.tasks.filter(task => task.running == false && task.enabled == true).length <= 0
     }
 
     is_pending(ns, task) {
@@ -50,17 +52,23 @@ class Init {
         }
     }
 
+    has_finished_running(ns, task_name) {
+        const manager_task = this.tasks.filter(task => task.name == task_name)[0]
+        return (!manager_task.enabled || (!ns.isRunning(manager_task.script, 'home') && manager_task.running))
+    }
+
     can_launch(ns, task) {
         switch (task) {
             case 'hacking':
             case 'player_manager':
+            case 'hud':
                 return true;
             case 'faction_manager':
-                return !ns.isRunning('/src/playermanager.js')
+                return this.has_finished_running(ns, 'player_manager')
             case 'corp':
                 return ns.getPlayer().hasCorporation;
             case 'bladeburner':
-                return (ns.getPlayer().inBladeburner && !ns.isRunning('/src/playermanager.js'));
+                return (ns.getPlayer().inBladeburner && this.has_finished_running(ns, 'player_manager'));
             case 'gang':
                 return ns.gang.inGang();
             default:

@@ -149,9 +149,8 @@ export class FactionManager {
         let message = ` Currently targeted faction: ${this.next_faction.faction}   Location: ${this.next_faction.location}\n`
         message += `  Requirements:\n`
         for (const requirement of this.next_faction.requirements) {
-            message += `    Type ${requirement.type}   Amount: ${requirement.amount}\n`
+            message += `    Type: ${requirement.type}   Amount: ${Utils.pretty_num(requirement.amount)}\n`
         }
-        message += `\n`
         this.messenger.add_message(`FactionManager update`, message)
     }
 

@@ -21,12 +21,14 @@ export class CorpManager {
         if (this.corp.divisions.length <= 0) {
             const division_name = 'Warez'
             const division_type = 'Software'
+            let high_priority = false;
+            //if (division.type = 'Software') high_priority = true
             this.corp_api.expandIndustry(division_type, division_name)
-            this.divisions.push(new DivisionManager(ns, this.messenger, this.corp_api, division_name, division_type, true))
+            this.divisions.push(new DivisionManager(ns, this.messenger, this.corp_api, division_name, division_type, high_priority))
         } else {
             for (const division of this.corp.divisions) {
                 let high_priority = false;
-                if (division.type = 'Software') high_priority = true
+                //if (division.type = 'Software') high_priority = true
                 this.divisions.push(new DivisionManager(ns, this.messenger, this.corp_api, division.name, division.type, high_priority))
             }
         }
@@ -72,12 +74,13 @@ export class CorpManager {
         let message = "";
 
         if (this.corp.public) {
-            message += `Current stock price: $${Utils.pretty_num(Math.floor(this.corp.sharePrice),3)}\n`
+            message += `Current stock price: $${Utils.pretty_num(Math.floor(this.corp.sharePrice),3)} `
             if (this.corp.issuedShares > 0) {
                 const buyback_price = Utils.pretty_num((this.corp.sharePrice * 1.1) * this.corp.issuedShares)
                 message += `Shares outstanding: ${Utils.pretty_num(this.corp.issuedShares)} Total buyback price $${buyback_price}\n`
             }
         }
+        message += `  Current funds: $${Utils.pretty_num(this.corp.funds)}\n`
         message += `Profit: $${Utils.pretty_num(this.corp.revenue - this.corp.expenses)} Revenue: $${Utils.pretty_num(this.corp.revenue)} Expenses: $${Utils.pretty_num(this.corp.expenses)}\n`
         if (message != "") {
             this.messenger.add_message('CorpRunner Update', message)
@@ -185,7 +188,7 @@ class DivisionManager {
         this.name = name;
         this.type = type;
         this.opts = {
-            advert_max: 10,
+            advert_max: 5,
             target_warehouse_utilization: 0.7,
             target_warehouse_level: 10,
             max_office_size: 9,
@@ -211,6 +214,7 @@ class DivisionManager {
         this.handle_cities(ns)
         this.handle_warehouse_apis(ns)
         this.handle_office_apis(ns)
+        this.status_update(ns)
     }
 
     get current_city_names() {
@@ -246,6 +250,31 @@ class DivisionManager {
         const unfinished_cities = this.cities.filter(city => city.completed == false)
         if (unfinished_cities.length > 0) return false;
         else return true;
+    }
+
+    get hire_advert_count() {
+        return this.corp_api.getHireAdVertCount(this.name)
+    }
+
+    get target_advert_level() {
+        let target_advert_level = this.opts.advert_max
+        if (this.opts.high_priority) target_advert_level *= this.opts.priority_multiplier
+        return target_advert_level
+    }
+
+    status_update(ns) {
+        let message = `  Current number of products: ${this.products.length}`
+        message += `   Highest version: ${this.get_highest_product_version()}`
+        message += `   Under development: ${this.product_under_development()}\n`
+        if (this.completed) {
+            message += `  Advert level: ${this.corp_api.getHireAdVertCount(this.name)}   target: ${this.target_advert_level}`
+            message += `  Cities:\n`
+            for (const city of this.cities) {
+                message += `    ${city.name} completion- warehouse: ${city.warehouse_completed} office: ${city.office_completed}\n`
+            }
+        }
+
+        this.messenger.add_message(`${this.name} status update`, message);
     }
 
     check_completion(ns) {
@@ -300,8 +329,10 @@ class DivisionManager {
 
     grow_division(ns) {
         if (!this.city_upgrades_finished) return
+        const expansion_cost = this.corp_api.getExpandCityCost() + this.corp_api.getPurchaseWarehouseCost()
+        this.messenger.add_message(`${this.name} ready to grow`,
+            `  Expansion cost: ${Utils.pretty_num(expansion_cost)}   Current funds: $${Utils.pretty_num(CorpHelper.current_money(ns))}`);
         for (const city_name of Utils.cities) {
-            const expansion_cost = this.corp_api.getExpandCityCost() + this.corp_api.getPurchaseWarehouseCost()
             if (!this.current_city_names.includes(city_name) &&
                 expansion_cost < CorpHelper.current_money(ns)) {
                 this.corp_api.expandCity(this.name, city_name)
@@ -414,15 +445,15 @@ class DivisionManager {
 
     upgrade_advert(ns) {
         if (!this.city_upgrades_finished || this.advert_completed) return
-        let target_advert_level = this.opts.advert_max
-        if (this.opts.high_priority) target_advert_level *= this.opts.priority_multiplier
-        let hire_advert_count = this.corp_api.getHireAdVertCount(this.name)
-        if (hire_advert_count < target_advert_level &&
-            this.corp_api.getHireAdVertCost(this.name) <= CorpHelper.current_money(ns)) {
+        const advert_cost = this.corp_api.getHireAdVertCost(this.name)
+        this.messenger.add_message(`${this.name} needs to upgrade advert`,
+            `  Current: ${this.hire_advert_count}   Target: ${this.target_advert_level} Cost: $${advert_cost}`);
+        if (this.hire_advert_count < this.target_advert_level &&
+            advert_cost <= CorpHelper.current_money(ns)) {
             this.corp_api.hireAdVert(this.name);
-            ns.tprint(`${this.name} AdVert level upgraded to ${hire_advert_count}.`)
+            ns.tprint(`${this.name} AdVert level upgraded to ${this.hire_advert_count}.`)
         }
-        if (hire_advert_count >= target_advert_level) {
+        if (this.hire_advert_count >= this.target_advert_level) {
             this.advert_completed = true;
         }
     }
@@ -458,8 +489,8 @@ class CityManager {
             this.check_completion(ns)
             this.handle_warehouse_api(ns)
             this.handle_office_api(ns)
+            this.status_update(ns)
         }
-        this.status_update(ns)
     }
 
     get warehouse() {
@@ -538,7 +569,7 @@ class CityManager {
         this.messenger.add_message(`${this.division_name} ${this.name} warehouse status`,
             `  Current warehouse level: ${this.warehouse.level}   target: ${this.target_warehouse_level}`);
         if (this.warehouse.level >= this.target_warehouse_level) {
-            this.warehouse_complete = true
+            this.warehouse_completed = true
             ns.tprint(`${this.division_name} warehouse in ${this.name} at target level: ${this.target_warehouse_level}.`)
 
         }
@@ -546,8 +577,11 @@ class CityManager {
 
 
     upgrade_office(ns) {
+        const office_upgrade_cost = this.corp_api.getOfficeSizeUpgradeCost(this.division_name, this.name, 3)
+        this.messenger.add_message(`${this.name} ${this.city} needs office upgrades.`,
+            `  Upgrade cost: ${Utils.pretty_num(office_upgrade_cost)}   Current funds: $${Utils.pretty_num(CorpHelper.current_money(ns))}`);
         while (this.office.size < this.target_office_size &&
-            this.corp_api.getOfficeSizeUpgradeCost(this.division_name, this.name, 3) <= CorpHelper.current_money(ns)) {
+            office_upgrade_cost <= CorpHelper.current_money(ns)) {
             this.corp_api.upgradeOfficeSize(this.division_name, this.name, 3)
             ns.tprint(`${this.division_name} ${this.name} office size upgraded to ${this.office.size}`)
         }
@@ -665,11 +699,13 @@ class CityManager {
     }
 
     upgrade_warehouse(ns) {
-        if (this.warehouse_complete) return
+        if (this.warehouse_completed) return
+        const warehouse_upgrade_cost = this.corp_api.getUpgradeWarehouseCost(this.division_name, this.name);
+        this.messenger.add_message(`${this.name} ${this.city} needs warehouse upgrades.`,
+            `  Upgrade cost: ${Utils.pretty_num(warehouse_upgrade_cost)}   Current funds: $${Utils.pretty_num(CorpHelper.current_money(ns))}`)
         if (this.warehouse.level < this.target_warehouse_level &&
             this.warehouse_utilization >= this.opts.target_warehouse_utilization) {
-            const cost = this.corp_api.getUpgradeWarehouseCost(this.division_name, this.name);
-            if (cost < CorpHelper.current_money(ns)) {
+            if (warehouse_upgrade_cost < CorpHelper.current_money(ns)) {
                 this.corp_api.upgradeWarehouse(this.division_name, this.name);
                 ns.tprint(`Warehouse upgraded to ${this.warehouse.level} for ${this.division_name} in ${this.name}.`)
             }

@@ -37,6 +37,7 @@ export class PlayerManager {
     async run(ns) {
         if (this.current_task == null || this.current_task.is_finished(ns)) {
             if (this.task_queue.length > 0) {
+                await this.stopAction(ns);
                 this.current_task = this.get_next_task(ns)
                 while (this.current_task.is_finished(ns) && this.task_queue.length > 0) {
                     ns.tprint(`Skipping ${this.current_task.type} ${this.current_task.subtype} to ${this.current_task.value}, conditions already met`)
@@ -57,13 +58,17 @@ export class PlayerManager {
     async finish(ns) {
         ns.tprint(`No more tasks remaining, exiting!`)
         if (this.stop_on_finish) {
-            let result = false
-            while (!result && ns.isBusy()) {
-                result = ns.stopAction()
-                await ns.sleep(100)
-            }
+            await this.stopAction(ns);
         }
         this.finished = true;
+    }
+
+    async stopAction(ns) {
+        let result = false;
+        while (!result && ns.isBusy()) {
+            result = ns.stopAction();
+            await ns.sleep(100);
+        }
     }
 
     handle_goal(ns, goal) {
