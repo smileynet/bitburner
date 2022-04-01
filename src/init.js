@@ -7,10 +7,10 @@ class Init {
         this.tasks = [
             { name: 'player_manager', enabled: true, running: false, script: '/src/playermanager.js', requirements: 'None.' },
             { name: 'hud', enabled: true, running: false, script: '/utils/hud.js', requirements: 'None.' },
-            { name: 'faction_manager', enabled: true, running: false, script: '/src/factionmanager.js', requirements: 'After player manager.' },
+            { name: 'faction_manager', enabled: true, running: false, script: '/src/factionmanager.js', requirements: 'Runs after BladeManager is running.' },
             { name: 'gang', enabled: false, running: false, script: '/src/gangmanager.js', requirements: 'Need to be in a gang (-54000 karma)' },
             { name: 'corp', enabled: true, running: false, script: '/src/corpmanager.js', requirements: 'Need to form a corp ($150b)' },
-            { name: 'bladeburner', enabled: true, running: false, script: '/src/blademanager.js', requirements: 'Need to join Bladeburners  (100 each combat stat), runs after player manager completes.' },
+            { name: 'bladeburner', enabled: true, running: false, script: '/src/blademanager.js', requirements: 'Need to join Bladeburners  (100 each combat stat), runs after PlayerMnanager completes.' },
             { name: 'hacking', enabled: true, running: false, script: '/src/botmaster.js', requirements: 'None.' },
         ];
     }
@@ -64,7 +64,7 @@ class Init {
             case 'hud':
                 return true;
             case 'faction_manager':
-                return this.has_finished_running(ns, 'player_manager')
+                return ns.isRunning('/src/blademanager.js', 'home')
             case 'corp':
                 return ns.getPlayer().hasCorporation;
             case 'bladeburner':
