@@ -77,7 +77,7 @@ export class CorpManager {
             message += `Current stock price: $${Utils.pretty_num(Math.floor(this.corp.sharePrice),3)} `
             if (this.corp.issuedShares > 0) {
                 const buyback_price = Utils.pretty_num((this.corp.sharePrice * 1.1) * this.corp.issuedShares)
-                message += `Shares outstanding: ${Utils.pretty_num(this.corp.issuedShares)} Total buyback price $${buyback_price}\n`
+                message += `Shares outstanding: ${Utils.pretty_num(this.corp.issuedShares)} Total buyback price $${Utils.pretty_num(buyback_price)} for a total of ${Utils.pretty_num(this.corp.issuedShares * buyback_price)}\n`
             }
         }
         message += `  Current funds: $${Utils.pretty_num(this.corp.funds)}\n`
