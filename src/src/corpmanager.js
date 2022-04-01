@@ -331,7 +331,7 @@ class DivisionManager {
         if (!this.city_upgrades_finished) return
         const expansion_cost = this.corp_api.getExpandCityCost() + this.corp_api.getPurchaseWarehouseCost()
         this.messenger.add_message(`${this.name} ready to grow`,
-            `  Expansion cost: ${Utils.pretty_num(expansion_cost)}   Current funds: $${Utils.pretty_num(CorpHelper.current_money(ns))}`);
+            `  Expansion cost: $${Utils.pretty_num(expansion_cost)}   Current funds: $${Utils.pretty_num(CorpHelper.current_money(ns))}`);
         for (const city_name of Utils.cities) {
             if (!this.current_city_names.includes(city_name) &&
                 expansion_cost < CorpHelper.current_money(ns)) {
@@ -589,8 +589,6 @@ class CityManager {
         for (let i = this.office.employees.length; i < this.office.size; i++) this.corp_api.hireEmployee(this.division_name, this.name);
         ns.run('/src/scriptlauncher.js', 1, '/utils/office_assignment.js', this.division_name, this.name)
     }
-
-
 
     handle_materials(ns) {
         if (this.corp.state != 'START') return;
