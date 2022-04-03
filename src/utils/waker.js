@@ -7,6 +7,7 @@ class Sleeper {
 
         this.tasks = [
             { name: 'faction_manager', enabled: true, running: false, script: '/src/factionmanager.js', requirements: 'Runs when player has $10m.' },
+            { name: 'purchase_manager', enabled: true, running: false, script: '/src/purchasemanager.js', requirements: 'None.' },
             { name: 'aug_purchasing', enabled: true, running: false, script: '/src/augmanager.js', requirements: 'More than 10 augs ready to buy.' },
         ];
     }
@@ -31,6 +32,8 @@ class Sleeper {
 
     can_launch(ns, task) {
         switch (task) {
+            case 'purchase_manager':
+                return true
             case 'aug_purchasing':
                 if (ns.fileExists('affordable_augs.txt', 'home')) {
                     return parseInt(ns.read('affordable_augs.txt')) >= 10
