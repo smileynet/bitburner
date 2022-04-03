@@ -26,14 +26,14 @@ class Init {
     }
 
     async run(ns) {
-        for (let task of this.tasks) {
+        for (const task of this.tasks) {
             if (task.pending && !this.is_pending(ns, task)) {
                 task.running = true
             }
             if (task.running == false && this.can_launch(ns, task.name) && !this.is_pending(ns, task)) {
                 task.pending = true
-                ns.run(`/src/scriptlauncher.js`, 1, task.script)
-                this.messenger.add_message(`${task.name} launch`, `Tried to launch script ${task.script}.`)
+                const result = ns.run(`/src/scriptlauncher.js`, 1, task.script)
+                ns.tprint(`Tried to launch script ${task.script}: ${result}`)
             } else if (task.enabled) {
                 this.messenger.add_message(`${task.name} pending`, `  Pending: ${task.pending} Running: ${task.running}\n  Requirements: ${task.requirements}`)
             }

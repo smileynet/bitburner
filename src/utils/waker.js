@@ -17,10 +17,11 @@ class Sleeper {
     }
 
     async run(ns) {
-        for (let task of this.tasks) {
+        for (const task of this.tasks) {
+            ns.tprint(`Handling task ${task.name}`)
             if (this.can_launch(ns, task.name)) {
-                ns.run(`/src/scriptlauncher.js`, 1, task.script)
-                this.messenger.add_message(`${task.name} launch`, `Tried to launch script ${task.script}.`)
+                const result = ns.run(`/src/scriptlauncher.js`, 1, task.script)
+                ns.tprint(`Tried to launch script ${task.script}, result: ${result}`)
             } else {
                 ns.tprint(`${task.name} not run, requirements: ${task.requirements}`)
             }
@@ -32,12 +33,12 @@ class Sleeper {
         switch (task) {
             case 'aug_purchasing':
                 if (ns.fileExists('affordable_augs.txt', 'home')) {
-                    return parseInt(this.ns.read('affordable_augs.txt')) >= 10
+                    return parseInt(ns.read('affordable_augs.txt')) >= 10
                 } else {
                     return false
                 }
             case 'faction_manager':
-                return (ns.getServerMoneyAvailable("home") > 1000000)
+                return ns.getServerMoneyAvailable("home") >= 1000000
             default:
                 ns.tprint(`Unrecognized sleeper task: ${task}`)
                 return false;
