@@ -144,8 +144,10 @@ export class RepHelper {
 /** @param {NS} ns **/
 export async function main(ns) {
     ns.disableLog("ALL");
+    const verbose = false
+    const messenger = new Messenger(verbose);
+    messenger.init(ns);
     const buy_augs_on_exit = ns.args[0] == 'buy' ? true : false
-    const messenger = new Messenger();
     const repManager = new RepManager(messenger, buy_augs_on_exit)
     await repManager.init(ns);
     while (!repManager.finished) {

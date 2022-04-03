@@ -1,14 +1,25 @@
 export class Messenger {
-    constructor(interval = 60) {
+    constructor(verbose = true, interval = 60) {
         this.messages = new Map();
+        this.verbose = verbose
         this.refresh_interval = interval;
         this.current_interval = interval;
+    }
+
+    init(ns) {
+        if (!this.verbose) {
+            ns.tail();
+        }
     }
 
     run(ns) {
         if (this.current_interval <= 0) {
             for (const message of this.messages) {
-                ns.tprint(`     ---${message[0]}---\n${message[1]}\n`);
+                if (this.verbose) {
+                    ns.tprint(`     ---${message[0]}---\n${message[1]}\n`);
+                } else {
+                    ns.print(`     ---${message[0]}---\n${message[1]}\n`);
+                }
             }
             this.messages.clear();
             this.current_interval = this.refresh_interval;

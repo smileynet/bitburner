@@ -723,8 +723,11 @@ class CityManager {
 
 /** @param {NS} ns **/
 export async function main(ns) {
-    let messenger = new Messenger();
-    let corp_manager = new CorpManager(ns, messenger);
+    ns.disableLog("ALL");
+    const verbose = false
+    const messenger = new Messenger(verbose);
+    messenger.init(ns);
+    const corp_manager = new CorpManager(ns, messenger);
     corp_manager.init(ns)
     while (!corp_manager.finished) {
         corp_manager.run(ns);

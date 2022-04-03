@@ -8,6 +8,7 @@ export class BotMaster {
     constructor(ns, messenger, scanner) {
         this.scanner = scanner;
         this.messenger = messenger
+        this.finished = false
         this.jobs = [];
     }
 
@@ -67,7 +68,7 @@ export class BotMaster {
             message += `${' '.repeat(10 - proc.type.length)} threads: ${proc.threads}`;
             message += `${' '.repeat(10 - String(proc.threads).length)} mult: ${Utils.pretty_num(target_mult)}\n`;
         }
-        message += `\n      Total threads: ${Pretty_num(total,2)}`
+        message += `\n      Total threads: ${Utils.pretty_num(total,2)}`
         await ns.write('threads.txt', total, 'w')
         this.messenger.add_message('BotMaster threads', message);
     }
@@ -118,13 +119,14 @@ export class BotMaster {
 /** @param {NS} ns **/
 export async function main(ns) {
     ns.disableLog("ALL");
-    let messenger = new Messenger();
-    let scanner = new Scanner(ns, messenger);
-    let botmaster = new BotMaster(ns, messenger, scanner);
-    let purchase_manager = new PurchaseManager(ns, messenger, scanner, 16);
-    while (true) {
+    const verbose = false
+    const messenger = new Messenger(verbose);
+    messenger.init(ns)
+    const scanner = new Scanner(ns, messenger);
+    const botmaster = new BotMaster(ns, messenger, scanner);
+    const purchase_manager = new PurchaseManager(ns, messenger, scanner, 16);
+    while (!botmaster.finished) {
         purchase_manager.run(ns);
-        await botmaster.update_jobs(ns);
         await botmaster.run(ns);
         messenger.run(ns);
         await ns.sleep(1000);
