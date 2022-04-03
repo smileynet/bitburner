@@ -14,6 +14,15 @@ class Sleeper {
 
     async init(ns) {
         this.tasks = this.tasks.filter(task => task.enabled)
+        let mem_available = ns.getServerMaxRam('home') - ns.getServerUsedRam('home');
+        const script_mem = ns.getScriptRam(`/src/scriptlauncher.js`, 'home')
+        const target_mem = script_mem * (this.tasks.length + 1)
+        await ns.write('reserved.txt', target_mem, "w");
+        while (mem_available < target_mem) {
+            ns.tprint(`Waiting for enough memory to launch...`)
+            mem_available = ns.getServerMaxRam('home') - ns.getServerUsedRam('home');
+            await ns.sleep(5000)
+        }
         ns.tprint(`Launching scripts...`)
     }
 

@@ -8,7 +8,7 @@ export class Messenger {
 
     init(ns) {
         if (!this.verbose) {
-            ns.tail();
+            //ns.tail();
         }
     }
 

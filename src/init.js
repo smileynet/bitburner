@@ -21,7 +21,8 @@ class Init {
         ns.rm('money.txt', 'home');
         ns.rm('faction_goals.txt', 'home');
         ns.rm('affordable_augs.txt', 'home');
-        await ns.write('reserved.txt', 6, "w");
+        ns.rm('/data/rep_goal.txt', 'home');
+        await ns.write('reserved.txt', 8, "w");
         this.tasks = this.tasks.filter(task => task.enabled)
         ns.tprint(`Launching scripts...`)
     }

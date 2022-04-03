@@ -10,11 +10,13 @@ export class ScriptLauncher {
         this.current_task = 'none'
     }
 
-    init(ns) {
+    async init(ns) {
         if (ns.isRunning(this.script_name, 'home', this.script_args)) {
             ns.kill(this.script_name, 'home', this.script_args)
         } else if (ns.isRunning(this.script_name, 'home')) {
             ns.kill(this.script_name, 'home')
+        } else {
+            ns.sleep(1000)
         }
     }
 
@@ -22,7 +24,8 @@ export class ScriptLauncher {
         if (await this.check_memory(ns)) {
             await this.launch_script(ns)
         } else {
-            this.messenger.add_message(`${this.script_name} pending`, `Free mem needed: ${this.mem_needed}`)
+            const mem_available = ns.getServerMaxRam('home') - ns.getServerUsedRam('home');
+            this.messenger.add_message(`${this.script_name} pending`, `  Free mem needed: ${this.mem_needed}   Currently available; ${mem_available}`)
         }
     }
 
@@ -39,7 +42,7 @@ export class ScriptLauncher {
         }
         if (result > 0) {
             ns.tprint(`${this.script_name} with args ${this.script_args} launched successfully!`)
-            const reserved = ns.getServerMaxRam('home') > 1024 ? 66 : 6
+            const reserved = ns.getServerMaxRam('home') > 1024 ? 66 : 8
             await ns.write('reserved.txt', reserved, "w");
             this.finished = true;
         } else {
@@ -68,7 +71,7 @@ export async function main(ns) {
     const script_name = ns.args[0]
     let script_args = ns.args.slice(1)
     const script_launcher = new ScriptLauncher(ns, messenger, script_name, script_args)
-    script_launcher.init(ns)
+    await script_launcher.init(ns)
     while (!script_launcher.finished) {
         await script_launcher.run(ns)
         messenger.run(ns);
