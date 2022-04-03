@@ -30,7 +30,11 @@ export class ScriptLauncher {
         let result
         if (this.script_args == '') {
             result = ns.run(this.script_name);
+        } else if (Array.isArray(this.script_args)) {
+            ns.tprint(this.script_args)
+            result = ns.run(this.script_name, 1, ...this.script_args);
         } else {
+            ns.tprint(`single arg ${this.script_args}`)
             result = ns.run(this.script_name, 1, this.script_args);
         }
         if (result > 0) {
@@ -63,7 +67,6 @@ export async function main(ns) {
     const messenger = new Messenger()
     const script_name = ns.args[0]
     let script_args = ns.args.slice(1)
-    script_args = script_args.join(' ')
     const script_launcher = new ScriptLauncher(ns, messenger, script_name, script_args)
     script_launcher.init(ns)
     while (!script_launcher.finished) {
