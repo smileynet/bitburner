@@ -13,6 +13,9 @@ export class RepManager {
     async init(ns) {
         ns.kill('/utils/boost.js', 'home')
         ns.run('/utils/boost.js');
+        if (ns.isRunning('/src/blademanager.js', 'home') && !ns.fileExists('simulacrum.txt', 'home')) {
+            ns.kill('/src/blademanager.js', 'home')
+        }
         ns.stopAction();
         this.load_goals(ns)
         if (this.buy_augs_on_exit) ns.tprint(`WARN: This script will buy augs when completed, likely trigging a reset`)
@@ -24,9 +27,12 @@ export class RepManager {
 
     finish(ns) {
         ns.kill('/utils/boost.js', 'home')
-        if (this.buy_augs_on_exit) {
+        if (ns.fileExists('affordable_augs.txt', 'home') || this.buy_augs_on_exit) {
             ns.run(`/src/scriptlauncher.js`, 1, `/src/augmanager.js`)
+        } else {
+            ns.run(`/src/scriptlauncher.js`, 1, `/src/blademanager.js`)
         }
+
     }
 
     load_goals(ns) {
