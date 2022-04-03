@@ -2,7 +2,7 @@ import Utils from 'src/utils'
 import Messenger from "/src/messenger";
 
 export class RepManager {
-    constructor(messenger, buy_augs_on_exit = true) {
+    constructor(messenger, buy_augs_on_exit = false) {
         this.messenger = messenger;
         this.finished = false;
         this.faction_favor_to_buy = 150;
@@ -30,7 +30,7 @@ export class RepManager {
     }
 
     load_goals(ns) {
-        const filename = 'goals.txt'
+        const filename = 'faction_goals.txt'
         if (ns.fileExists(filename, 'home')) {
             this.goals = JSON.parse(ns.read(filename))
         } else {
@@ -103,7 +103,7 @@ export class RepHelper {
 /** @param {NS} ns **/
 export async function main(ns) {
     ns.disableLog("ALL");
-    const buy_augs_on_exit = ns.args[0] == 'grind' ? false : true
+    const buy_augs_on_exit = ns.args[0] == 'buy' ? true : false
     const messenger = new Messenger();
     const repManager = new RepManager(messenger, buy_augs_on_exit)
     await repManager.init(ns);

@@ -18,8 +18,8 @@ class Init {
     async init(ns) {
         ns.tprint(`Initializing files...`)
         ns.rm('money.txt', 'home');
-        ns.rm('goals.txt', 'home');
-        ns.rm('cheap.txt', 'home');
+        ns.rm('faction_goals.txt', 'home');
+        ns.rm('affordable_augs.txt', 'home');
         await ns.write('reserved.txt', 6, "w");
         this.tasks = this.tasks.filter(task => task.enabled)
         ns.tprint(`Launching scripts...`)
@@ -35,7 +35,7 @@ class Init {
                 ns.run(`/src/scriptlauncher.js`, 1, task.script)
                 this.messenger.add_message(`${task.name} launch`, `Tried to launch script ${task.script}.`)
             } else if (task.enabled) {
-                this.messenger.add_message(`${task.name} pending`, `Requirements: ${task.requirements}`)
+                this.messenger.add_message(`${task.name} pending`, `  Pending: ${task.pending} Running: ${task.running}\n  Requirements: ${task.requirements}`)
             }
         }
     }

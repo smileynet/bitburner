@@ -3,26 +3,21 @@ import Messenger from "/src/messenger.js";
 
 
 export class AugManager {
-    constructor(messenger, check, prompt) {
+    constructor(messenger, check, prompt, cheap) {
         this.messenger = messenger;
         this.check = check;
         this.prompt = prompt
         this.max_rep_default = 10000
         this.min_augs = 5
         this.finished = false;
+        this.start_with_affordable = cheap
     }
 
     init(ns) {
-        if (ns.fileExists('cheap.txt')) {
-            this.start_with_affordable = true
-        } else {
-            this.start_with_affordable = false
-        }
-
         if (this.check) {
             ns.tprint(`Updating rep goals!`)
         } else {
-            ns.tprint(`Buying augs!`)
+            ns.tprint(`Buying augs! Cheap: ${this.start_with_affordable}`)
         }
     }
 
@@ -44,7 +39,7 @@ export class AugManager {
             if (this.prompt) {
                 response = await ns.prompt(`All available augs purchased. ${num_augs} augs to install.\n\n${' '.repeat(18)}Install now?`)
             }
-            if (response && num_augs > 0) {
+            if (response && num_augs > 10) {
                 await ns.write('last_reboot.txt', new Date().toLocaleString(), 'w')
                 ns.installAugmentations('init.js')
             } else {
@@ -86,9 +81,14 @@ export class AugManager {
             ns.tprint(`Fewer than ${this.min_augs} augs found: ${all_augs.length}, trying again with ${new_rep} max rep`)
             await this.set_faction_goals(ns, new_rep)
         } else {
-            const filename = 'goals.txt'
+            let filename = 'faction_goals.txt'
             await ns.write(filename, JSON.stringify(goals), 'w');
             ns.tprint(`Goals written to ${filename} with ${goals.length} goals totaling ${all_augs.length} augs.`)
+            const affordable_augs = AugHelper.get_affordable_augs(ns).length
+            filename = 'affordable_augs.txt'
+            await ns.write(filename, affordable_augs, 'w');
+            ns.tprint(`Current number of affordable augs: ${affordable_augs}. Written to ${filename}`)
+
         }
     }
 
@@ -107,6 +107,11 @@ export class AugManager {
         while (this.next_aug && this.start_with_affordable &&
             this.next_aug.price > ns.getServerMoneyAvailable('home')) {
             this.next_aug = this.augs_to_buy.shift();
+        }
+        if (!this.next_aug) {
+            ns.tprint(`All available augs purchased, exiting!`)
+            this.finished = true;
+            return true
         }
     }
 
@@ -133,7 +138,7 @@ export class AugManager {
         if (this.meets_aug_prereqs(ns, aug)) {
             const result = ns.purchaseAugmentation(faction, this.next_aug.name)
             ns.tprint(`Aug purchased: ${this.next_aug.name}   price: ${Utils.pretty_num(this.next_aug.price)}   ${result}`)
-            this.messenger.append_message(`FactionManager Aug Purchased`,
+            this.messenger.append_message(`AugManager Aug Purchased`,
                 `  ${this.next_aug.name}   price: ${Utils.pretty_num(this.next_aug.price)}`);
             this.next_aug = this.augs_to_buy.shift()
         } else {
@@ -272,7 +277,8 @@ export async function main(ns) {
     const messenger = new Messenger();
     const check = ns.args[0] == 'check' ? true : false;
     const prompt = ns.args[0] == 'prompt' ? true : false;
-    const augManager = new AugManager(messenger, check, prompt)
+    const cheap = ns.args[0] == 'cheap' ? true : false;
+    const augManager = new AugManager(messenger, check, prompt, cheap)
     augManager.init(ns)
     while (!augManager.finished) {
         await augManager.run(ns);

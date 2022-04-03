@@ -15,6 +15,15 @@ export class BladeManager {
         this.current_city = 'none'
     }
 
+    async init(ns) {
+        let result = false;
+        while (!result && ns.isBusy()) {
+            result = ns.stopAction();
+            ns.tprint(`Waiting for previous action to finish.`)
+            await ns.sleep(100);
+        }
+    }
+
     run(ns) {
         this.upgrade_skills(ns);
         this.refresh_action(ns);
@@ -314,6 +323,7 @@ export async function main(ns) {
     let messenger = new Messenger();
     let bladeburner = new BladeManager(ns, messenger);
     let loop = true
+    await bladeburner.init(ns)
     while (loop) {
         bladeburner.run(ns);
         messenger.run(ns);

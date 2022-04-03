@@ -74,10 +74,10 @@ export class CorpManager {
         let message = "";
 
         if (this.corp.public) {
-            message += `Current stock price: $${Utils.pretty_num(Math.floor(this.corp.sharePrice),3)} `
+            message += `Current stock price: $${Utils.pretty_num(this.corp.sharePrice,2)} `
             if (this.corp.issuedShares > 0) {
-                const buyback_price = Utils.pretty_num((this.corp.sharePrice * 1.1) * this.corp.issuedShares)
-                message += `Shares outstanding: ${Utils.pretty_num(this.corp.issuedShares)} Total buyback price $${Utils.pretty_num(buyback_price)} for a total of ${Utils.pretty_num(this.corp.issuedShares * buyback_price)}\n`
+                const buyback_price = Utils.pretty_num(this.corp.sharePrice * 1.1 * this.corp.issuedShares)
+                message += `Shares outstanding: ${Utils.pretty_num(this.corp.issuedShares)} Total buyback price $${Utils.pretty_num(buyback_price,2)}\n`
             }
         }
         message += `  Current funds: $${Utils.pretty_num(this.corp.funds)}\n`
@@ -95,7 +95,7 @@ export class CorpManager {
             this.set_fraud(ns, true)
             if (this.corp.sharePrice < this.buyback_price &&
                 ((this.corp.sharePrice * 1.1) * this.corp.issuedShares) < ns.getServerMoneyAvailable("home")) {
-                ns.tprint(`Buying ${this.corp.issuedShares} back at $${this.corp.sharePrice}.`)
+                ns.tprint(`Buying ${this.corp.issuedShares} back at $${Utils.pretty_num(this.corp.sharePrice,2)} for a total of $${Utils.pretty_num(this.corp.issuedShares * this.corp.sharePrice)}`)
                 this.corp_api.buyBackShares(this.corp.issuedShares)
                 this.set_fraud(ns, false)
                 ns.tprint(`No fraud was committed in support of this transaction. Businesses will resume normal production.`)
@@ -577,12 +577,13 @@ class CityManager {
 
 
     upgrade_office(ns) {
-        const office_upgrade_cost = this.corp_api.getOfficeSizeUpgradeCost(this.division_name, this.name, 3)
-        this.messenger.add_message(`${this.name} ${this.city} needs office upgrades.`,
+        const batch_upgrade_size = 3
+        const office_upgrade_cost = this.corp_api.getOfficeSizeUpgradeCost(this.division_name, this.name, batch_upgrade_size)
+        this.messenger.add_message(`${this.division_name} ${this.name} needs office upgrades.`,
             `  Upgrade cost: ${Utils.pretty_num(office_upgrade_cost)}   Current funds: $${Utils.pretty_num(CorpHelper.current_money(ns))}`);
         while (this.office.size < this.target_office_size &&
             office_upgrade_cost <= CorpHelper.current_money(ns)) {
-            this.corp_api.upgradeOfficeSize(this.division_name, this.name, 3)
+            this.corp_api.upgradeOfficeSize(this.division_name, this.name, batch_upgrade_size)
             ns.tprint(`${this.division_name} ${this.name} office size upgraded to ${this.office.size}`)
         }
         if (this.office.employees.length === this.office.size) return;
@@ -699,7 +700,7 @@ class CityManager {
     upgrade_warehouse(ns) {
         if (this.warehouse_completed) return
         const warehouse_upgrade_cost = this.corp_api.getUpgradeWarehouseCost(this.division_name, this.name);
-        this.messenger.add_message(`${this.name} ${this.city} needs warehouse upgrades.`,
+        this.messenger.add_message(`${this.division_name} ${this.name} needs warehouse upgrades.`,
             `  Upgrade cost: ${Utils.pretty_num(warehouse_upgrade_cost)}   Current funds: $${Utils.pretty_num(CorpHelper.current_money(ns))}`)
         if (this.warehouse.level < this.target_warehouse_level &&
             this.warehouse_utilization >= this.opts.target_warehouse_utilization) {

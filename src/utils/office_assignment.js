@@ -1,20 +1,22 @@
 async function update_office_assignment(ns, divisionName, cityName) {
+    const roles = [
+        { name: 'Operations', weight: 4 },
+        { name: 'Engineer', weight: 3 },
+        { name: 'Business', weight: 2 },
+        { name: 'Management', weight: 2 },
+        { name: 'Research & Development', weight: 3 },
+        { name: 'Training', weight: 1 },
+    ]
     const corp_api = eval('ns.corporation');
     const office = corp_api.getOffice(divisionName, cityName);
     ns.tprint(`Beginning job reassignment for ${divisionName} in ${cityName}.`)
-    await corp_api.setAutoJobAssignment(divisionName, cityName, 'Operations', 0);
-    await corp_api.setAutoJobAssignment(divisionName, cityName, 'Engineer', 0);
-    await corp_api.setAutoJobAssignment(divisionName, cityName, 'Business', 0);
-    await corp_api.setAutoJobAssignment(divisionName, cityName, 'Management', 0);
-    await corp_api.setAutoJobAssignment(divisionName, cityName, 'Research & Development', 0);
-    await corp_api.setAutoJobAssignment(divisionName, cityName, 'Training', 0);
+    for (const role in roles) {
+        await corp_api.setAutoJobAssignment(divisionName, cityName, role.name, 0);
+    }
     const val = office.size / 15;
-    await corp_api.setAutoJobAssignment(divisionName, cityName, 'Operations', Math.round(val * 4));
-    await corp_api.setAutoJobAssignment(divisionName, cityName, 'Engineer', Math.round(val * 3));
-    await corp_api.setAutoJobAssignment(divisionName, cityName, 'Business', Math.round(val * 2));
-    await corp_api.setAutoJobAssignment(divisionName, cityName, 'Management', Math.round(val * 2));
-    await corp_api.setAutoJobAssignment(divisionName, cityName, 'Research & Development', Math.round(val * 3));
-    await corp_api.setAutoJobAssignment(divisionName, cityName, 'Training', Math.round(val * 1));
+    for (const role in roles) {
+        await corp_api.setAutoJobAssignment(divisionName, cityName, role.name, Math.round(val * role.weight));
+    }
     ns.tprint(`Job reassignment for ${divisionName} in ${cityName} completed.`)
 }
 
