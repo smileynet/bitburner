@@ -59,6 +59,7 @@ export async function main(ns) {
         messenger.run(ns);
         await ns.sleep(1000);
     }
-    ns.tprint(`All eligible tasks run, launching sleeper!`)
-    ns.run(`/src/scriptlauncher.js`, 1, '/utils/sleeper.js')
+    const result = ns.run(`/src/scriptlauncher.js`, 1, '/utils/sleeper.js')
+    ns.tprint(`All eligible tasks run, launching sleeper: ${result}`)
+
 }
