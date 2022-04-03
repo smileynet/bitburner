@@ -268,7 +268,7 @@ class DivisionManager {
         message += `   Highest version: ${this.get_highest_product_version()}`
         message += `   Under development: ${this.product_under_development()}\n`
         if (!this.completed) {
-            message += `  Advert level: ${this.corp_api.getHireAdVertCount(this.name)}   target: ${this.target_advert_level}`
+            message += `  Advert level: ${this.corp_api.getHireAdVertCount(this.name)}   target: ${this.target_advert_level}\n`
             message += `  Cities:\n`
             for (const city of this.cities) {
                 message += `    ${city.name} completion- warehouse: ${city.warehouse_completed} office: ${city.office_completed}\n`
