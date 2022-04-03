@@ -12,16 +12,16 @@ export class BotMaster {
     }
 
     async run(ns) {
-        this.update_jobs(ns)
+        await this.update_jobs(ns)
         await this.assign_jobs(ns);
     }
 
-    update_jobs(ns) {
+    async update_jobs(ns) {
         this.refresh_data(ns);
-        this.handle_active_threads(ns)
+        await this.handle_active_threads(ns)
     }
 
-    handle_active_threads(ns) {
+    async handle_active_threads(ns) {
 
         let all_procs = [];
         for (const bot of this.bots) {
@@ -52,19 +52,23 @@ export class BotMaster {
                 }
             }
         }
-        this.display_threads(all_procs);
+        await this.display_threads(ns, all_procs);
     }
 
-    display_threads(all_procs) {
+    async display_threads(ns, all_procs) {
         all_procs.sort((a, b) => b.threads - a.threads);
         let message = ``;
+        let total = 0
         console.debug(all_procs);
         for (const proc of all_procs) {
+            total += proc.threads
             const target_mult = this.targets.filter(target => target.name == proc.target)[0].growth_money_mult;
             message += `  ${proc.target} ${' '.repeat(20 - proc.target.length)} ${proc.type}`;
             message += `${' '.repeat(10 - proc.type.length)} threads: ${proc.threads}`;
             message += `${' '.repeat(10 - String(proc.threads).length)} mult: ${Utils.pretty_num(target_mult)}\n`;
         }
+        message += `\n      Total threads: ${Pretty_num(total,2)}`
+        await ns.write('threads.txt', total, 'w')
         this.messenger.add_message('BotMaster threads', message);
     }
 
