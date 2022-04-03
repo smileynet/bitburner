@@ -81,7 +81,7 @@ export class CorpManager {
             }
         }
         message += `  Current funds: $${Utils.pretty_num(this.corp.funds)}\n`
-        message += `Profit: $${Utils.pretty_num(this.corp.revenue - this.corp.expenses)} Revenue: $${Utils.pretty_num(this.corp.revenue)} Expenses: $${Utils.pretty_num(this.corp.expenses)}\n`
+        message += `Profit: $${Utils.pretty_num(this.corp.revenue - this.corp.expenses)} Mult: ${Utils.pretty_num(this.corp.revenue / this.corp.expenses,2)}   Revenue: $${Utils.pretty_num(this.corp.revenue)}   Expenses: $${Utils.pretty_num(this.corp.expenses)}\n`
         if (message != "") {
             this.messenger.add_message('CorpRunner Update', message)
         }
