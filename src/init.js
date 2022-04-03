@@ -7,7 +7,8 @@ class Init {
         this.tasks = [
             { name: 'player_manager', enabled: true, running: false, script: '/src/playermanager.js', requirements: 'None.' },
             { name: 'hud', enabled: true, running: false, script: '/utils/hud.js', requirements: 'None.' },
-            { name: 'faction_manager', enabled: true, running: false, script: '/src/factionmanager.js', requirements: 'Runs after BladeManager is running.' },
+            { name: 'sleeper', enabled: true, running: false, script: '/utils/sleeper.js', requirements: 'None.' },
+            { name: 'faction_manager', enabled: false, running: false, script: '/src/factionmanager.js', requirements: 'Runs after BladeManager is running.' },
             { name: 'gang', enabled: false, running: false, script: '/src/gangmanager.js', requirements: 'Need to be in a gang (-54000 karma)' },
             { name: 'corp', enabled: true, running: false, script: '/src/corpmanager.js', requirements: 'Need to form a corp ($150b)' },
             { name: 'bladeburner', enabled: true, running: false, script: '/src/blademanager.js', requirements: 'Need to join Bladeburners  (100 each combat stat), runs after PlayerMnanager completes.' },
@@ -62,15 +63,35 @@ class Init {
             case 'hacking':
             case 'player_manager':
             case 'hud':
+            case 'sleeper':
                 return true;
             case 'faction_manager':
                 return ns.isRunning('/src/blademanager.js', 'home')
             case 'corp':
-                return ns.getPlayer().hasCorporation;
+                if (ns.getPlayer().hasCorporation) {
+                    return true
+                } else {
+                    task.running = true
+                    return false
+                }
             case 'bladeburner':
-                return (ns.getPlayer().inBladeburner && this.has_finished_running(ns, 'player_manager'));
+                if (ns.getPlayer().inBladeburner) {
+                    if (this.has_finished_running(ns, 'player_manager')) {
+                        return true
+                    } else {
+                        return false
+                    }
+                } else {
+                    task.running = true
+                    return false
+                }
             case 'gang':
-                return ns.gang.inGang();
+                if (ns.gang.inGang()) {
+                    return true
+                } else {
+                    task.running = true
+                    return false
+                }
             default:
                 ns.tprint(`Unrecognized init task: ${task}`)
                 return false;
