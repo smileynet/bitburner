@@ -188,7 +188,7 @@ class DivisionManager {
         this.name = name;
         this.type = type;
         this.opts = {
-            advert_max: 5,
+            advert_max: 6,
             target_warehouse_utilization: 0.7,
             target_warehouse_level: 10,
             max_office_size: 9,
@@ -215,6 +215,7 @@ class DivisionManager {
         this.handle_warehouse_apis(ns)
         this.handle_office_apis(ns)
         this.status_update(ns)
+        this.check_completion(ns)
     }
 
     get current_city_names() {
@@ -252,7 +253,7 @@ class DivisionManager {
         else return true;
     }
 
-    get hire_advert_count() {
+    get advert_level() {
         return this.corp_api.getHireAdVertCount(this.name)
     }
 
@@ -266,7 +267,7 @@ class DivisionManager {
         let message = `  Current number of products: ${this.products.length}`
         message += `   Highest version: ${this.get_highest_product_version()}`
         message += `   Under development: ${this.product_under_development()}\n`
-        if (this.completed) {
+        if (!this.completed) {
             message += `  Advert level: ${this.corp_api.getHireAdVertCount(this.name)}   target: ${this.target_advert_level}`
             message += `  Cities:\n`
             for (const city of this.cities) {
@@ -284,6 +285,13 @@ class DivisionManager {
         this.completed = true
     }
 
+    check_advert_completion(ns) {
+        if (this.advert_level >= this.target_advert_level) {
+            this.advert_completed = true;
+            ns.tprint(`${this.name} AdVert at target level: ${this.advert_level}.`)
+        }
+    }
+
     handle_warehouse_apis(ns) {
         if (!this.corp_api.hasUnlockUpgrade('Warehouse API')) return
         this.create_products(ns)
@@ -295,6 +303,7 @@ class DivisionManager {
         if (!this.corp_api.hasUnlockUpgrade('Office API')) return
         this.handle_research(ns)
         this.upgrade_advert(ns)
+        this.check_advert_completion(ns)
     }
 
     handle_cities(ns) {
@@ -444,17 +453,14 @@ class DivisionManager {
     }
 
     upgrade_advert(ns) {
-        if (!this.city_upgrades_finished || this.advert_completed) return
+        if (this.cities.lenth < this.advert_level || this.advert_completed) return
         const advert_cost = this.corp_api.getHireAdVertCost(this.name)
         this.messenger.add_message(`${this.name} needs to upgrade advert`,
-            `  Current: ${this.hire_advert_count}   Target: ${this.target_advert_level} Cost: $${advert_cost}`);
-        if (this.hire_advert_count < this.target_advert_level &&
+            `  Current: ${this.advert_level}   Target: ${this.target_advert_level} Cost: $${Utils.pretty_num(advert_cost)}`);
+        if (this.advert_level < this.target_advert_level &&
             advert_cost <= CorpHelper.current_money(ns)) {
             this.corp_api.hireAdVert(this.name);
-            ns.tprint(`${this.name} AdVert level upgraded to ${this.hire_advert_count}.`)
-        }
-        if (this.hire_advert_count >= this.target_advert_level) {
-            this.advert_completed = true;
+            ns.tprint(`${this.name} AdVert level upgraded to ${this.advert_level}.`)
         }
     }
 }
