@@ -27,14 +27,19 @@ export class ScriptLauncher {
     }
 
     async launch_script(ns) {
-        const result = ns.run(this.script_name, 1, this.script_args);
+        let result
+        if (this.script_args == '') {
+            result = ns.run(this.script_name);
+        } else {
+            result = ns.run(this.script_name, 1, this.script_args);
+        }
         if (result > 0) {
             ns.tprint(`${this.script_name} with args ${this.script_args} launched successfully!`)
             const reserved = ns.getServerMaxRam('home') > 1024 ? 66 : 6
             await ns.write('reserved.txt', reserved, "w");
             this.finished = true;
         } else {
-            ns.tprint(`WARN: Could not launch ${this.script_name} with args ${this.script_args}!`)
+            ns.tprint(`WARN: Could not launch ${this.script_name} with args ${this.script_args}`)
         }
     }
 
