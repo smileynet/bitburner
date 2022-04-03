@@ -21,8 +21,19 @@ export async function main(ns) {
             values.push(`${Utils.pretty_num(parseInt(ns.read('threads.txt')))}`);
             headers.push("To Buy");
             values.push("----------");
-            headers.push("Augs:");
-            values.push(`${parseInt(ns.read('affordable_augs.txt'))}`);
+            if (ns.fileExists('affordable_augs.txt')) {
+                headers.push("Augs:");
+                values.push(`${parseInt(ns.read('affordable_augs.txt'))}`);
+            }
+            if (ns.fileExists('/data/server_ram_size.txt')) {
+                headers.push("RAM:");
+                values.push(`${parseInt(ns.read('/data/server_ram_size.txt'))}`);
+            }
+            if (ns.fileExists('/data/server_ram_cost.txt')) {
+                headers.push("Cost:");
+                values.push(`$${Utils.pretty_num(parseInt(ns.read('/data/server_ram_cost.txt')))}`);
+            }
+
             if (ns.getPlayer().hasCorporation) {
                 headers.push("Corp");
                 values.push("----------");
@@ -37,6 +48,17 @@ export async function main(ns) {
                     headers.push("Stock:");
                     values.push(`$${Utils.pretty_num(corp.sharePrice,2)}`);
                 }
+            }
+            if (ns.fileExists('/data/rep_goal.txt')) {
+                headers.push("Rep");
+                values.push("----------");
+                const rep_obj = JSON.parse(ns.read('/data/rep_goal.txt', 'home'))
+                headers.push("Rep Goal:");
+                values.push(`${Utils.pretty_num(rep_obj.goal)}`);
+                headers.push("Current Rep:");
+                values.push(`${Utils.pretty_num(rep_obj.needed)}`);
+                headers.push("Est Minues:");
+                values.push(`${Utils.pretty_num(rep_obj.time)}`);
             }
             headers.push("--------");
             values.push("----------");

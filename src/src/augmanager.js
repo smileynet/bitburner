@@ -7,8 +7,9 @@ export class AugManager {
         this.messenger = messenger;
         this.check = check;
         this.prompt = prompt
+        this.min_augs_to_buy = 5
         this.max_rep_default = 10000
-        this.min_augs = 5
+        this.min_augs_for_goals = this.min_augs_to_buy
         this.finished = false;
         this.start_with_affordable = cheap
     }
@@ -23,9 +24,9 @@ export class AugManager {
 
     async run(ns) {
         if (this.check) {
+            this.finished = true;
             AugDisplayer.by_price(ns, AugHelper.get_affordable_augs(ns))
             await this.set_faction_goals(ns)
-            this.finished = true;
         } else {
             await ns.write('money.txt', 'true', 'w');
             this.buy_augs(ns)
@@ -51,7 +52,7 @@ export class AugManager {
     async set_faction_goals(ns, max_rep = this.max_rep_default) {
         const rep_ceiling = 1000000000000
         if (max_rep > 1000000000000) {
-            this.min_augs -= 1
+            this.min_augs_for_goals -= 1
             await this.set_faction_goals(ns, rep_ceiling - 1)
         } // prevent infinity
         const augs_by_faction = AugHelper.get_unowned_augs_by_faction(ns);
@@ -67,7 +68,12 @@ export class AugManager {
             for (const aug of faction_augs.augs) {
                 if (aug.rep_req > faction_rep_level && aug.rep_req < max_rep) {
                     faction_rep_level = aug.rep_req
-                    all_augs.push(aug);
+                    let match = all_augs.find(all_aug => all_aug.name == aug.name)
+                    if (match === undefined) {
+                        all_augs.push(aug);
+                    } else {
+                        this.select_best_faction(ns, match, aug)
+                    }
                 }
             }
             if (faction_rep_level > 0) goals.push({ faction: faction_augs.faction, rep: faction_rep_level })
@@ -76,9 +82,9 @@ export class AugManager {
             const new_rep = max_rep * 2
             ns.tprint(`No goals found, trying again with ${new_rep} max rep`)
             await this.set_faction_goals(ns, new_rep)
-        } else if (all_augs.length < this.min_augs) {
+        } else if (all_augs.length < this.min_augs_for_goals) {
             const new_rep = max_rep * 1.5
-            ns.tprint(`Fewer than ${this.min_augs} augs found: ${all_augs.length}, trying again with ${new_rep} max rep`)
+            ns.tprint(`Fewer than ${this.min_augs_for_goals} augs found: ${all_augs.length}, trying again with ${new_rep} max rep`)
             await this.set_faction_goals(ns, new_rep)
         } else {
             let filename = 'faction_goals.txt'
@@ -88,8 +94,18 @@ export class AugManager {
             filename = 'affordable_augs.txt'
             await ns.write(filename, affordable_augs, 'w');
             ns.tprint(`Current number of affordable augs: ${affordable_augs}. Written to ${filename}`)
+            if (affordable_augs >= this.min_augs_to_buy) {
+                this.finished = false;
+                this.check = false;
+                this.start_with_affordable = true;
+            }
 
         }
+    }
+
+    select_best_faction(ns, current, possible) {
+        const factions = [current.faction[0], possible.faction[0]]
+        current.faction = [this.get_best_faction(ns, factions)]
     }
 
 
