@@ -9,6 +9,7 @@ export class PurchaseManager {
         this.max_server_ram = ns.getPurchasedServerMaxRam();
         this.min_server_ram = min_server_ram;
         this.messenger = messenger;
+        this.finished = false;
         this.scanner = scanner;
         this.initial_step_size = 4;
         this.initial_step_end = 1024;
@@ -25,6 +26,7 @@ export class PurchaseManager {
                 this.current_servers(ns).forEach(server => { this.replace_server(ns, server) })
             }
         }
+        this.finished = true;
     }
 
     funds_avail(ns, type) {
@@ -135,10 +137,12 @@ export class PurchaseManager {
 /** @param {NS} ns **/
 export async function main(ns) {
     ns.disableLog("ALL");
-    let messenger = new Messenger();
+    const verbose = false
+    const messenger = new Messenger(verbose);
+    messenger.init(ns);
     let scanner = new Scanner(ns, messenger);
     let purchase_agent = new PurchaseManager(ns, messenger, scanner, 16);
-    while (true) {
+    while (!purchase_agent.finished) {
         purchase_agent.run(ns);
         messenger.run(ns);
         await ns.sleep(1000);
