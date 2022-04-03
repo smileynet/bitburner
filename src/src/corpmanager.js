@@ -215,7 +215,7 @@ class DivisionManager {
         this.handle_warehouse_apis(ns)
         this.handle_office_apis(ns)
         this.status_update(ns)
-        this.check_completion(ns)
+            //this.check_completion(ns)
     }
 
     get current_city_names() {
@@ -279,6 +279,7 @@ class DivisionManager {
     }
 
     check_completion(ns) {
+        //TODO: Check for max division size
         if (!this.advert_completed) return false
         if (!this.city_upgrades_finished) return false
         ns.tprint(`${this.name} all upgrades complete!`)
@@ -286,6 +287,7 @@ class DivisionManager {
     }
 
     check_advert_completion(ns) {
+        if (this.advert_completed) return
         if (this.advert_level >= this.target_advert_level) {
             this.advert_completed = true;
             ns.tprint(`${this.name} AdVert at target level: ${this.advert_level}.`)
@@ -530,8 +532,9 @@ class CityManager {
     }
 
     status_update(ns) {
-        this.messenger.add_message(`${this.division_name} ${this.name} upgrade completion`,
-            `  Warehouse: ${this.warehouse_completed}   Office: ${this.office_completed}`);
+        // Leaving this in place for future functionality, currently this is rolled up by the division implementation of this function.
+        //this.messenger.add_message(`${this.division_name} ${this.name} upgrade completion`,
+        //    `  Warehouse: ${this.warehouse_completed}   Office: ${this.office_completed}`);
     }
 
     check_completion(ns) {
@@ -577,7 +580,6 @@ class CityManager {
         if (this.warehouse.level >= this.target_warehouse_level) {
             this.warehouse_completed = true
             ns.tprint(`${this.division_name} warehouse in ${this.name} at target level: ${this.target_warehouse_level}.`)
-
         }
     }
 
