@@ -12,6 +12,7 @@ export class Target {
     }
 
     get current_security() {
+        if (this.name == 'joesguns') return 1000000000000000000
         return this.ns.getServerSecurityLevel(this.name);
     }
 
