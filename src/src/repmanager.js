@@ -18,6 +18,7 @@ export class RepManager {
         }
         ns.stopAction();
         this.load_goals(ns)
+        ns.prioritize_goals(ns)
         if (this.buy_augs_on_exit) ns.tprint(`WARN: This script will buy augs when completed, likely trigging a reset`)
     }
 
@@ -27,7 +28,7 @@ export class RepManager {
 
     finish(ns) {
         ns.kill('/utils/boost.js', 'home')
-        if (ns.fileExists('affordable_augs.txt', 'home') || this.buy_augs_on_exit) {
+        if (this.buy_augs_on_exit) {
             ns.run(`/src/scriptlauncher.js`, 1, `/src/augmanager.js`)
         } else {
             ns.run(`/src/scriptlauncher.js`, 1, `/src/blademanager.js`)
@@ -43,14 +44,48 @@ export class RepManager {
             ns.tprint(`Cannot find ${filename}. Exiting!`)
             return;
         }
+    }
 
-        this.current_goal = this.goals.shift();
+    prioritize_goals(ns) {
+        for (const goal of this.goals) {
+            this.set_priority(goal)
+        }
+        this.goals.sort((a, b) => b.priority - a.priority)
+    }
+
+    set_priority(ns, goal) {
+        switch (goal.faction) {
+            case 'CyberSec':
+                goal.priority = 10
+                break;
+            case 'Sector-12':
+                goal.priority = 9
+                break;
+            case 'Aevum':
+                goal.priority = 9
+                break;
+            case 'Slum Snakes':
+                goal.priority = 7
+                break;
+            case 'Tian Di Hui':
+                goal.priority = 8
+                break;
+            case 'NiteSec':
+                goal.priority = 6
+                break;
+            case 'The Black Hand':
+                goal.priority = 5
+                break;
+            default:
+                goal.priority = 1
+        }
     }
 
     handle_goals(ns) {
+        if (!this.current_goal) this.current_goal = this.goals.shift();
         const player = ns.getPlayer();
         let current_rep = ns.getFactionRep(this.current_goal.faction) + player.workRepGained
-        let status = `${this.current_goal.faction} rep: ${Utils.pretty_num(current_rep)} goal: ${Utils.pretty_num(this.current_goal.rep)}.`
+        let status = `${this.current_goal.faction}   rep: ${Utils.pretty_num(current_rep)}   goal: ${Utils.pretty_num(this.current_goal.rep)}   priority: ${this.current_goal.priority}.`
         if (this.current_goal.rep <= current_rep) {
             ns.stopAction();
             ns.tprint(`Goal completed: ${status}`);
