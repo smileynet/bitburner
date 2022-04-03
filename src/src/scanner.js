@@ -9,11 +9,11 @@ export class Scanner {
         this.messenger = messenger;
         this.known_servers = [];
         this.player = new Player(ns);
-        this.add_server(ns, "home");
         this.faction_servers = ["CSEC", "avmnite-02h", "I.I.I.I", "run4theh111z", "w0r1d_d43m0n"]
     }
 
     refresh(ns) {
+        this.add_server(ns, "home");
         console.debug(this.known_servers);
         let rootable_servers = this.known_servers.filter(server => server.rooted != true && this.player.can_root(ns, server));
         console.debug(rootable_servers);
@@ -34,7 +34,9 @@ export class Scanner {
 
     add_server(ns, server_name, parent_server = "home") {
         let server = new Server(ns, server_name, parent_server);
-        this.known_servers.push(server);
+        if (this.known_servers.find(known_server => known_server.name == server_name) === undefined) {
+            this.known_servers.push(server);
+        }
         server.children.forEach(child => {
             const exists = this.known_servers.find(server => server.name == child);
             if (exists === undefined) {

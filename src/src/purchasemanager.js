@@ -4,18 +4,17 @@ import Scanner from "/src/scanner";
 
 
 export class PurchaseManager {
-    constructor(ns, messenger, scanner, min_server_ram = 8) {
+    constructor(ns, messenger, min_server_ram = 16) {
         this.max_servers = ns.getPurchasedServerLimit();
         this.max_server_ram = ns.getPurchasedServerMaxRam();
         this.min_server_ram = min_server_ram;
         this.messenger = messenger;
         this.finished = false;
-        this.scanner = scanner;
         this.initial_step_size = 4;
         this.initial_step_end = 1024;
     }
 
-    run(ns) {
+    async run(ns) {
         if (!ns.fileExists('money.txt')) {
             this.purchase_hacking_programs(ns)
             this.purchase_home_upgrades(ns)
@@ -25,10 +24,21 @@ export class PurchaseManager {
             } else {
                 this.current_servers(ns).forEach(server => { this.replace_server(ns, server) })
             }
+            await this.status_update(ns);
+        } else {
+            this.messenger.add_message(`PurchaseManager status update`,
+                `  Currently skipping purchases.`)
         }
         this.finished = true;
     }
 
+
+    async status_update(ns) {
+        this.messenger.add_message(`PurchaseManager next purchased server`,
+            `  Cost: $${this.next_cost}   RAM: ${this.next_ram}`)
+        await ns.write(`/data/server_ram_size.txt`, this.next_ram, 'w')
+        await ns.write(`/data/server_ram_cost.txt`, this.next_cost, 'w')
+    }
     funds_avail(ns, type) {
         const items = {
             purchased_server: { ratio: 0.5 },
@@ -50,7 +60,6 @@ export class PurchaseManager {
         if (ram_amount > 0) {
             const hostname = ns.purchaseServer("hackserv-" + (this.current_servers(ns).length < 9 ? '0' : '') + (this.current_servers(ns).length + 1), ram_amount);
             const message = `  ${hostname} purchased with ${ram_amount} RAM.\n`
-            this.scanner.add_server(ns, hostname);
             this.messenger.append_message('PurchaseManager Server Purchased:', message);
             ns.toast(message);
         }
@@ -63,7 +72,6 @@ export class PurchaseManager {
             ns.deleteServer(server_name);
             const hostname = ns.purchaseServer(server_name, ram_amount);
             const message = `  ${hostname} upgraded to ${ram_amount} RAM.\n`
-            this.scanner.add_server(ns, hostname);
             this.messenger.append_message(`PurchaseManager upgraded:`, message);
             ns.toast(message);
         }
@@ -80,8 +88,9 @@ export class PurchaseManager {
             }
         }
         if (test_ram_amount > this.max_server_ram) { test_ram_amount = this.max_server_ram; }
-        this.messenger.add_message(`PurchaseManager next purchased server`,
-            `  Cost: $${Utils.pretty_num(ns.getPurchasedServerCost(test_ram_amount))}   RAM: ${test_ram_amount}`)
+        const cost = Utils.pretty_num(ns.getPurchasedServerCost(test_ram_amount))
+        this.next_cost = cost
+        this.next_ram = test_ram_amount
         console.debug(`Affordable ram amount: ${affordable_ram_amount}`);
         return affordable_ram_amount;
     }
@@ -140,10 +149,9 @@ export async function main(ns) {
     const verbose = false
     const messenger = new Messenger(verbose);
     messenger.init(ns);
-    let scanner = new Scanner(ns, messenger);
-    let purchase_agent = new PurchaseManager(ns, messenger, scanner, 16);
+    let purchase_agent = new PurchaseManager(ns, messenger);
     while (!purchase_agent.finished) {
-        purchase_agent.run(ns);
+        await purchase_agent.run(ns);
         messenger.run(ns);
         await ns.sleep(1000);
     }

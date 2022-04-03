@@ -124,9 +124,7 @@ export async function main(ns) {
     messenger.init(ns)
     const scanner = new Scanner(ns, messenger);
     const botmaster = new BotMaster(ns, messenger, scanner);
-    const purchase_manager = new PurchaseManager(ns, messenger, scanner, 16);
     while (!botmaster.finished) {
-        purchase_manager.run(ns);
         await botmaster.run(ns);
         messenger.run(ns);
         await ns.sleep(1000);
