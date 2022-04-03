@@ -143,7 +143,7 @@ export class AugManager {
             this.next_aug = this.augs_to_buy.shift()
         } else {
             const index = this.augs_to_buy.findIndex(prereq_aug => prereq_aug.name == aug.prereqs[0]);
-            const prereq_aug = this.aug_to_buy[index]
+            const prereq_aug = this.augs_to_buy[index]
             ns.tprint(`Aug pre-reqs not met for ${aug.name}. Moving prereq ${prereq_aug.name} to the front of the list.`)
             this.augs_to_buy.unshift(aug)
             this.next_aug = prereq_aug
