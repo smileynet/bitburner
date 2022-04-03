@@ -10,11 +10,11 @@ async function update_office_assignment(ns, divisionName, cityName) {
     const corp_api = eval('ns.corporation');
     const office = corp_api.getOffice(divisionName, cityName);
     ns.tprint(`Beginning job reassignment for ${divisionName} in ${cityName}.`)
-    for (const role in roles) {
+    for (const role of roles) {
         await corp_api.setAutoJobAssignment(divisionName, cityName, role.name, 0);
     }
     const val = office.size / 15;
-    for (const role in roles) {
+    for (const role of roles) {
         await corp_api.setAutoJobAssignment(divisionName, cityName, role.name, Math.round(val * role.weight));
     }
     ns.tprint(`Job reassignment for ${divisionName} in ${cityName} completed.`)
