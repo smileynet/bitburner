@@ -66,7 +66,9 @@ export class AugManager {
             if (faction_augs.faction == 'Bladeburners') continue // Can't earn rep directly with Bladeburners
             let faction_rep_level = 0
             for (const aug of faction_augs.augs) {
-                if (aug.rep_req > faction_rep_level && aug.rep_req < max_rep) {
+                const faction_favor = ns.getFactionFavor(aug.faction[0])
+                const adjusted_max_rep = max_rep * faction_favor
+                if (aug.rep_req > faction_rep_level && aug.rep_req < adjusted_max_rep) {
                     faction_rep_level = aug.rep_req
                     let match = all_augs.find(all_aug => all_aug.name == aug.name)
                     if (match === undefined) {
