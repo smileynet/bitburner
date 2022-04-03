@@ -580,7 +580,7 @@ class CityManager {
         const batch_upgrade_size = 3
         const office_upgrade_cost = this.corp_api.getOfficeSizeUpgradeCost(this.division_name, this.name, batch_upgrade_size)
         this.messenger.add_message(`${this.division_name} ${this.name} needs office upgrades.`,
-            `  Upgrade cost: ${Utils.pretty_num(office_upgrade_cost)}   Current funds: $${Utils.pretty_num(CorpHelper.current_money(ns))}`);
+            `  Upgrade cost: $${Utils.pretty_num(office_upgrade_cost)}   Current funds: $${Utils.pretty_num(CorpHelper.current_money(ns))}`);
         while (this.office.size < this.target_office_size &&
             office_upgrade_cost <= CorpHelper.current_money(ns)) {
             this.corp_api.upgradeOfficeSize(this.division_name, this.name, batch_upgrade_size)
@@ -701,7 +701,7 @@ class CityManager {
         if (this.warehouse_completed) return
         const warehouse_upgrade_cost = this.corp_api.getUpgradeWarehouseCost(this.division_name, this.name);
         this.messenger.add_message(`${this.division_name} ${this.name} needs warehouse upgrades.`,
-            `  Upgrade cost: ${Utils.pretty_num(warehouse_upgrade_cost)}   Current funds: $${Utils.pretty_num(CorpHelper.current_money(ns))}`)
+            `  Upgrade cost: $${Utils.pretty_num(warehouse_upgrade_cost)}   Current funds: $${Utils.pretty_num(CorpHelper.current_money(ns))}`)
         if (this.warehouse.level < this.target_warehouse_level &&
             this.warehouse_utilization >= this.opts.target_warehouse_utilization) {
             if (warehouse_upgrade_cost < CorpHelper.current_money(ns)) {
