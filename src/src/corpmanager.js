@@ -16,7 +16,8 @@ export class CorpManager {
     init(ns) {
         if (!ns.getPlayer().hasCorporation) {
             const corp_name = 'Biggiez'
-            this.corp_api.createCorporation(corp_name, true)
+            const result = this.corp_api.createCorporation(corp_name, true)
+            ns.tprint(`Corp created with result: ${result}`)
         }
         if (this.corp.divisions.length <= 0) {
             const division_name = 'Warez'
