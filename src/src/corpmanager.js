@@ -95,7 +95,7 @@ export class CorpManager {
             this.set_fraud(ns, true)
             if (this.corp.sharePrice < this.buyback_price &&
                 ((this.corp.sharePrice * 1.1) * this.corp.issuedShares) < ns.getServerMoneyAvailable("home")) {
-                ns.tprint(`Buying ${this.corp.issuedShares} back at $${Utils.pretty_num(this.corp.sharePrice,2)} for a total of $${Utils.pretty_num(this.corp.issuedShares * this.corp.sharePrice)}`)
+                ns.tprint(`Buying ${Utils.pretty_num(this.corp.issuedShares)} shares back at $${Utils.pretty_num(this.corp.sharePrice,2)}, for a total price of $${Utils.pretty_num(this.corp.issuedShares * this.corp.sharePrice)}`)
                 this.corp_api.buyBackShares(this.corp.issuedShares)
                 this.set_fraud(ns, false)
                 ns.tprint(`No fraud was committed in support of this transaction. Businesses will resume normal production.`)
