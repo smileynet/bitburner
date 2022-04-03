@@ -20,13 +20,68 @@ class ContractSolver {
                 a.every((val, index) => val === b[index]);
         }
 
-        function getLayer(depth) {
-
+        function handle_lookup(combo) {
+            let result = []
+            if (combo[0] == 1) return result
+            if (!lookup[combo.length]) {
+                lookup[combo.length] = {
+                    [combo[0]]: {
+                        [combo[1]]: [combo]
+                    }
+                }
+                return result
+            }
+            if (!lookup[combo.length][combo[0]]) {
+                lookup[combo.length][combo[0]] = {
+                    [combo[1]]: [combo]
+                }
+                return result
+            }
+            for (let i = 0; i < combo.length; i++) {
+                result = getLayer(i, i, combo)
+                if (result == false) {
+                    setLayer(i, combo)
+                }
+            }
+            if (result) {
+                return result
+            } else {
+                return []
+            }
         }
 
-        function setLayer(depth) {
+        function getLayer(depth, top, combo) {
+            if (depth <= 0) {
+                return lookup[combo.length][combo[0]]
+            } else {
+                let current_layer = getLayer(depth - 1, top, combo)
+                if (current_layer) {
+                    if (current_layer[combo[depth]]) {
+                        return current_layer[combo[depth]]
+                    } else {
+                        if (depth == top) {
+                            return current_layer
+                        } else {
+                            return false
+                        }
+                    }
+                } else {
+                    return false
+                }
+            }
+        }
 
-
+        function setLayer(depth, combo) {
+            if (depth <= 0) {
+                lookup[combo.length][combo[0]] = {
+                    [combo[1]]: [combo]
+                }
+            } else {
+                let previous_layer = getLayer(depth - 1, depth - 1, combo)
+                previous_layer[combo[depth - 1]] = {
+                    [combo[depth]]: [combo]
+                }
+            }
         }
 
         function resolve_combos(num_a, num_b) {
@@ -35,58 +90,16 @@ class ContractSolver {
             combos.forEach(combo => {
                 const new_combo = [...combo, num_b]
                 new_combo.sort((a, b) => b - a);
-                let lookup_matches = []
-                if (lookup[new_combo.length]) {
-                    if (lookup[new_combo.length][new_combo[0]]) {
-                        if (lookup[new_combo.length][new_combo[0]][new_combo[1]]) {
-                            lookup_matches = lookup[new_combo.length][new_combo[0]][new_combo[1]]
-                        } else {
-                            lookup[new_combo.length][new_combo[0]][new_combo[1]] = [new_combo]
-                        }
-                    } else {
-                        lookup[new_combo.length][new_combo[0]] = {
-                            [new_combo[1]]: [new_combo]
-                        }
-                    }
-                } else {
-                    lookup[new_combo.length] = {
-                        [new_combo[0]]: {
-                            [new_combo[1]]: [new_combo]
-                        }
-                    }
-                }
-                let possible_matches = []
-                for (const solution of lookup_matches) {
-                    first_loop++
-                    if (solution.length != new_combo.length) continue
-                    if (solution[0] != new_combo[0]) continue
-                    if (solution[1] != new_combo[1]) continue
-                    let bad_match = false
-                    if (new_combo.length > 3) {
-                        for (let i = 2; i < (new_combo.length); i++) {
-                            //console.log(`a: ${num_a}   solution[i] ${solution[i]}   new_combo[i]: ${new_combo[i]}`)
-                            if (solution[i] != new_combo[i]) {
-                                //console.log(`a: ${num_a} i: ${i} ${new_combo} ${solution}`)
-                                bad_match = true
-                                break
-                            }
-                        }
-                    }
-                    if (bad_match) continue
-                    possible_matches.push(solution)
-                }
-
+                let lookup_matches = handle_lookup(new_combo)
                 let match = false
-                    //console.log(`solutions: ${solutions.length} possible_matches: ${possible_matches.length}`)
-                for (const possible_match of possible_matches) {
-                    second_loop++
+                for (const possible_match of lookup_matches) {
+
                     if (arrayEquals(possible_match, new_combo)) {
                         match = true
                         break;
                     }
                 }
                 if (!match) {
-                    lookup[new_combo.length][new_combo[0]][new_combo[1]] = [...lookup[new_combo.length][new_combo[0]][new_combo[1]], new_combo]
                     solutions.push(new_combo)
                 }
             })
@@ -94,17 +107,15 @@ class ContractSolver {
 
         console.log(`Finding total ways to sum for ${data}`)
 
+        console.log('readFile called');
         var combination = {};
         var lengths = {};
         let last = new Date();
-        var first_loop = 0
-        var second_loop = 0
         for (let i = 2; i <= data; i++) {
             let now = new Date();
-            console.log(`i: ${i}   time: ${now-last}   first_loop: ${first_loop}   second_loop: ${second_loop}`)
+            console.log(`i: ${i}   time: ${now-last}`)
             last = now
-            first_loop = 0
-            second_loop = 0
+
             const is_even = i % 2 == 0 ? true : false
             let a = i - 1
             let b = 1
@@ -113,8 +124,8 @@ class ContractSolver {
             ]
             var lookup = {
                 2: {
-                    a: {
-                        b: [
+                    [a]: {
+                        [b]: [
                             [a, b]
                         ]
                     }
@@ -130,10 +141,12 @@ class ContractSolver {
                 b++
             }
             lengths[i] = solutions.length
-            solutions.push([i])
-            combination[i] = { solutions: solutions, count: solutions.length }
+            let deduped_solutions = Array.from(new Set(solutions.map(JSON.stringify)), JSON.parse)
+            deduped_solutions = solutions.sort((a, b) => b[0] - a[0])
+            deduped_solutions.push([i])
+            combination[i] = { solutions: deduped_solutions, count: deduped_solutions.length - 1 }
         }
-        const fs = require('fs')
+        var fs = require('fs');
         fs.writeFile('./src/data/total_ways.json', JSON.stringify(lengths), err => {
             if (err) {
                 console.error(err)
@@ -141,14 +154,14 @@ class ContractSolver {
             }
         })
 
-        /*console.log(`\n\nCombinations:`)
+        console.log(`\n\nCombinations:`)
         for (const [key, values] of Object.entries(combination)) {
             console.log(`${key}:        Count: ${values.count}`)
-        }**/
+        }
         console.log(`Number of combinations: ${lengths[data]}`)
-        return combination[data].length
+        return lengths[data]
     }
 }
 
 let ns = ''
-console.log(ContractSolver.total_ways_to_sum(ns, 20))
+console.log(ContractSolver.total_ways_to_sum(ns, 100))
