@@ -168,7 +168,7 @@ export class FactionManager {
     handle_city_factions(ns) {
         let city_faction = null
         for (const city of Utils.cities) {
-            if (AugHelper.city_faction_has_unpurchased_augs(ns, city)) {
+            if (AugHelper.city_faction_has_unpurchased_augs(ns, city).length > 2) {
                 city_faction = {
                     faction: city,
                     location: city,
