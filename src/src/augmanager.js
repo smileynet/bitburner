@@ -40,8 +40,8 @@ export class AugManager {
             if (this.prompt) {
                 response = await ns.prompt(`All available augs purchased. ${num_augs} augs to install.\n\n${' '.repeat(18)}Install now?`)
             }
-            if (response && num_augs > 10) {
-                await ns.write('last_reboot.txt', new Date().toLocaleString(), 'w')
+            if (response && num_augs >= 5) {
+                await ns.write('last_reboot.txt', new Date().toLocaleString(), 'a')
                 ns.installAugmentations('init.js')
             } else {
                 ns.tprint(`Exiting without install. ${num_augs} ready to install.`)
@@ -56,16 +56,21 @@ export class AugManager {
             await this.set_faction_goals(ns, rep_ceiling - 1)
         } // prevent infinity
         const augs_by_faction = AugHelper.get_unowned_augs_by_faction(ns);
-        if (ns.getPlayer().factions.length < 0) {
-            ns.tprint(`WARN: No augs found! Are you in any factions?`)
+        let current_factions = ns.getPlayer().factions
+        current_factions = current_factions.filter(faction => faction != 'Bladeburners')
+        if (current_factions.length <= 0) {
+            ns.tprint(`WARN: No factions found! Are you in any factions?`)
             return
         }
         let all_augs = [];
         let goals = [];
         for (const faction_augs of augs_by_faction) {
-            if (faction_augs.faction == 'Bladeburners') continue // Can't earn rep directly with Bladeburners
+            if (faction_augs.faction == 'Bladeburners') continue // Can't earn rep via contracts with Bladeburners
             let faction_rep_level = 0
             for (const aug of faction_augs.augs) {
+                if (aug.name == "NeuroFlux Governor" && faction_augs.faction != "CyberSec") {
+                    continue
+                }
                 const faction_favor = ns.getFactionFavor(aug.faction[0])
                 const adjusted_max_rep = max_rep * faction_favor
                 if (aug.rep_req > faction_rep_level && aug.rep_req < adjusted_max_rep) {
@@ -76,9 +81,10 @@ export class AugManager {
                     } else {
                         this.select_best_faction(ns, match, aug)
                     }
+                    if (faction_rep_level > 0) goals.push({ name: aug.name, faction: faction_augs.faction, rep: aug.rep_req })
                 }
             }
-            if (faction_rep_level > 0) goals.push({ faction: faction_augs.faction, rep: faction_rep_level })
+            //if (faction_rep_level > 0) goals.push({ faction: faction_augs.faction, rep: faction_rep_level })
         }
         if (goals.length <= 0) {
             const new_rep = max_rep * 2
@@ -96,6 +102,13 @@ export class AugManager {
             filename = 'affordable_augs.txt'
             await ns.write(filename, affordable_augs, 'w');
             ns.tprint(`Current number of affordable augs: ${affordable_augs}. Written to ${filename}`)
+            if (all_augs.length > this.min_augs_to_buy) {
+                const reputation_script = '/src/repmanager.js'
+                if (!ns.isRunning(reputation_script, 'home')) {
+                    const result = ns.run(`/src/scriptlauncher.js`, 1, reputation_script)
+                    ns.tprint(`Tried to launch script ${reputation_script}, result: ${result}`)
+                }
+            }
             if (affordable_augs >= this.min_augs_to_buy) {
                 this.finished = false;
                 this.check = false;
