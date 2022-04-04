@@ -1,12 +1,12 @@
 import Messenger from '/src/messenger'
 import ScriptLauncher from '/src/scriptlauncher'
 
-class Sleeper {
+class Waker {
     constructor(ns, messenger) {
         this.messenger = messenger
 
         this.tasks = [
-            { name: 'faction_manager', enabled: true, running: false, script: '/src/factionmanager.js', requirements: 'Runs when player has $10m.' },
+            { name: 'faction_manager', enabled: true, running: false, script: '/src/factionmanager.js', requirements: 'Runs when player has $1m.' },
             { name: 'purchase_manager', enabled: true, running: false, script: '/src/purchasemanager.js', requirements: 'None.' },
             { name: 'aug_purchasing', enabled: true, running: false, script: '/src/augmanager.js', requirements: 'More than 10 augs ready to buy.' },
         ];
@@ -61,10 +61,8 @@ class Sleeper {
 /** @param {NS} ns **/
 export async function main(ns) {
     ns.disableLog("ALL");
-
     const messenger = new Messenger()
-    const sleeper = new Sleeper(ns, messenger)
-
+    const sleeper = new Waker(ns, messenger)
     await sleeper.init(ns);
     while (!sleeper.finished) {
         await sleeper.run(ns)
