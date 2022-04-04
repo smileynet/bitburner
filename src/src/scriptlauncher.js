@@ -1,3 +1,4 @@
+import Utils from "/src/utils.js";
 import Messenger from '/src/messenger'
 
 export class ScriptLauncher {
@@ -16,7 +17,7 @@ export class ScriptLauncher {
         } else if (ns.isRunning(this.script_name, 'home')) {
             ns.kill(this.script_name, 'home')
         } else {
-            ns.sleep(1000)
+            await ns.sleep(1000)
         }
     }
 
@@ -25,7 +26,7 @@ export class ScriptLauncher {
             await this.launch_script(ns)
         } else {
             const mem_available = ns.getServerMaxRam('home') - ns.getServerUsedRam('home');
-            this.messenger.add_message(`${this.script_name} pending`, `  Free mem needed: ${this.mem_needed}   Currently available; ${mem_available}`)
+            this.messenger.add_message(`${this.script_name} pending`, `  Free mem needed: ${Utils.pretty_num(this.mem_needed)}   Currently available; ${Utils.pretty_num(mem_available)}`)
         }
     }
 
