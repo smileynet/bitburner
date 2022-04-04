@@ -9,6 +9,7 @@ export class BladeManager {
         this.max_chaos = 50;
         this.max_intel_spread = 0.3;
         this.rank_target = 5000
+        this.finished = false
         this.refresh_interval = interval;
         this.current_interval = interval;
         this.current_action = 'none'
@@ -320,15 +321,16 @@ export class BladeManager {
 
 /** @param {NS} ns **/
 export async function main(ns) {
-    let messenger = new Messenger();
+    ns.disableLog("ALL");
+    const verbose = false
+    const messenger = new Messenger(verbose);
+    messenger.init(ns)
     let bladeburner = new BladeManager(ns, messenger);
-    let loop = true
     await bladeburner.init(ns)
-    while (loop) {
+    while (!bladeburner.finished) {
         bladeburner.run(ns);
         messenger.run(ns);
         await ns.sleep(1000);
-        loop = true;
     }
 }
 
