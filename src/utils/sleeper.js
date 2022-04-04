@@ -4,7 +4,7 @@ export async function main(ns) {
     let minutes = 10
     for (let i = 0; i < minutes; i++) {
         {
-            ns.tprint(`Sleeper script is sleeping. ${minutes-i} minutes remaining until waker script is called...`)
+            ns.print(`Sleeper script is sleeping. ${minutes-i} minutes remaining until waker script is called...`)
             await ns.sleep(60000)
         }
     }
