@@ -11,6 +11,7 @@ export async function main(ns) {
         try {
             const headers = []
             const values = [];
+            const threads = parseInt(ns.read('threads.txt'))
             headers.push("Hacking");
             values.push("----------");
             headers.push("Income:");
@@ -18,7 +19,11 @@ export async function main(ns) {
             headers.push("Exp:");
             values.push(`${Utils.pretty_num(ns.getScriptExpGain())} /sec`);
             headers.push("Threads:");
-            values.push(`${Utils.pretty_num(parseInt(ns.read('threads.txt')))}`);
+            values.push(`${Utils.pretty_num(threads)}`);
+            headers.push("Income:");
+            values.push(`$${Utils.pretty_num(ns.getScriptIncome()[0] / threads)} /thrd`);
+            headers.push("Exp:");
+            values.push(`${Utils.pretty_num(ns.getScriptExpGain() / threads,2)} /thrd`);
             headers.push("To Buy");
             values.push("----------");
             if (ns.fileExists('affordable_augs.txt')) {
