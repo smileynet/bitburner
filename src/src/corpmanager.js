@@ -6,7 +6,7 @@ export class CorpManager {
         this.messenger = messenger;
         this.corp_api = eval('ns.corporation');
         this.fraud = false;
-        this.buyback_price = 1000;
+        this.max_buyback_price = 1000;
         this.finished = false
         this.completed = false;
         this.divisions_completed = false;
@@ -108,7 +108,7 @@ export class CorpManager {
         if (this.corp.public) {
             message += `Current stock price: $${Utils.pretty_num(this.corp.sharePrice,2)} `
             if (this.corp.issuedShares > 0) {
-                const buyback_price = Utils.pretty_num(this.corp.sharePrice * 1.1 * this.corp.issuedShares)
+                const buyback_price = this.corp.sharePrice * 1.1 * this.corp.issuedShares
                 message += `Shares outstanding: ${Utils.pretty_num(this.corp.issuedShares)} Total buyback price $${Utils.pretty_num(buyback_price,2)}\n`
             }
         }
@@ -122,10 +122,10 @@ export class CorpManager {
     stock_buyback(ns) {
         if (this.corp.issuedShares > 0) {
             if (!this.fraud) {
-                ns.tprint(`Committing fraud to drop the stock price. Share purchase will commence at $${this.buyback_price}`)
+                ns.tprint(`Committing fraud to drop the stock price. Share purchase will commence at $${this.max_buyback_price}`)
             }
             this.set_fraud(ns, true)
-            if (this.corp.sharePrice < this.buyback_price &&
+            if (this.corp.sharePrice < this.max_buyback_price &&
                 ((this.corp.sharePrice * 1.1) * this.corp.issuedShares) < ns.getServerMoneyAvailable("home")) {
                 ns.tprint(`Buying ${Utils.pretty_num(this.corp.issuedShares)} shares back at $${Utils.pretty_num(this.corp.sharePrice,2)}, for a total price of $${Utils.pretty_num(this.corp.issuedShares * this.corp.sharePrice)}`)
                 this.corp_api.buyBackShares(this.corp.issuedShares)
@@ -139,6 +139,8 @@ export class CorpManager {
         this.fraud = fraud;
         for (const division of this.divisions) {
             division.fraud = fraud
+            for (const city of division.cities)
+                city.fraud = fraud
         }
     }
 
@@ -695,24 +697,22 @@ class CityManager {
         this.buy_preferred_material();
         this.sell_preferred_material();
         this.handle_consumed_materials();
-        this.handle_produced_materials();
+        this.handle_produced_materials(ns);
     }
 
-    handle_produced_materials() {
+    handle_produced_materials(ns) {
         const corp_api_unlocked = this.corp_api.hasUnlockUpgrade('Office API')
         for (const material of this.produced_materials) {
             if (this.fraud) {
                 if (corp_api_unlocked && this.corp_api.hasResearched(this.division_name, 'Market-TA.II')) {
                     this.corp_api.setMaterialMarketTA2(this.division_name, this.name, material, false);
                 };
-                this.sell_material(material, 0, 0);
+                this.sell_material(material, 'MAX', 1);
             } else if (this.corp.state == 'START') {
                 if (corp_api_unlocked && this.corp_api.hasResearched(this.division_name, 'Market-TA.II')) {
                     this.corp_api.setMaterialMarketTA2(this.division_name, this.name, material, true);
                 }
-                this.corp_api.sellMaterial(this.division_name, this.name, material, 'MAX', 'MP');
                 this.sell_material(material, 'MAX', 'MP');
-
             }
         }
     }
