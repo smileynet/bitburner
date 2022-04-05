@@ -18,12 +18,7 @@ export class PurchaseManager {
         if (!ns.fileExists('money.txt')) {
             this.purchase_hacking_programs(ns)
             this.purchase_home_upgrades(ns)
-            if (this.current_servers(ns).length < this.max_servers) {
-                console.debug(`Under max purchased server limit, attempting purchase.`)
-                this.purchase_server(ns);
-            } else {
-                this.current_servers(ns).forEach(server => { this.replace_server(ns, server) })
-            }
+            this.purchase_servers(ns);
             await this.status_update(ns);
         } else {
             this.messenger.add_message(`PurchaseManager status update`,
@@ -35,7 +30,7 @@ export class PurchaseManager {
 
     async status_update(ns) {
         this.messenger.add_message(`PurchaseManager next purchased server`,
-            `  Cost: $${this.next_cost}   RAM: ${this.next_ram}`)
+            `  Cost: $${Utils.pretty_num(this.next_cost)}   RAM: ${this.next_ram}`)
         await ns.write(`/data/server_ram_size.txt`, this.next_ram, 'w')
         await ns.write(`/data/server_ram_cost.txt`, this.next_cost, 'w')
     }
@@ -55,14 +50,23 @@ export class PurchaseManager {
         return ns.getPurchasedServers();
     }
 
-    purchase_server(ns) {
-        const ram_amount = this.max_affordable_ram(ns);
-        if (ram_amount > 0) {
-            const hostname = ns.purchaseServer("hackserv-" + (this.current_servers(ns).length < 9 ? '0' : '') + (this.current_servers(ns).length + 1), ram_amount);
-            const message = `  ${hostname} purchased with ${ram_amount} RAM.\n`
-            this.messenger.append_message('PurchaseManager Server Purchased:', message);
-            ns.toast(message);
+    purchase_servers(ns) {
+        if (this.current_servers(ns).length < this.max_servers) {
+            let ram_amount = this.max_affordable_ram(ns);
+            while (this.current_cost < this.funds_avail(ns, 'purchased_server') && this.current_servers(ns).length < this.max_servers) {
+                this.purchase_server(ns, ram_amount)
+                ram_amount = this.max_affordable_ram(ns);
+            }
+        } else {
+            this.current_servers(ns).forEach(server => { this.replace_server(ns, server) })
         }
+    }
+
+    purchase_server(ns, ram_amount) {
+        const hostname = ns.purchaseServer("hackserv-" + (this.current_servers(ns).length < 9 ? '0' : '') + (this.current_servers(ns).length + 1), ram_amount);
+        const message = `  ${hostname} purchased with ${ram_amount} RAM.\n`
+        this.messenger.append_message('PurchaseManager Server Purchased:', message);
+        ns.toast(message);
     }
 
     replace_server(ns, server_name) {
@@ -88,10 +92,10 @@ export class PurchaseManager {
             }
         }
         if (test_ram_amount > this.max_server_ram) { test_ram_amount = this.max_server_ram; }
-        const cost = Utils.pretty_num(ns.getPurchasedServerCost(test_ram_amount))
+        const cost = ns.getPurchasedServerCost(test_ram_amount)
+        this.current_cost = ns.getPurchasedServerCost(affordable_ram_amount)
         this.next_cost = cost
         this.next_ram = test_ram_amount
-        console.debug(`Affordable ram amount: ${affordable_ram_amount}`);
         return affordable_ram_amount;
     }
 
