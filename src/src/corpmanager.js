@@ -545,7 +545,8 @@ class DivisionManager {
     }
 
     upgrade_advert(ns) {
-        if (this.cities.lenth < this.advert_level || this.advert_completed) return
+        if (this.advert_completed) return
+        if (this.cities.lenth < this.advert_level && !this.expansion_completed) return
         const advert_cost = this.corp_api.getHireAdVertCost(this.name)
         this.messenger.add_message(`${this.name} needs to upgrade advert`,
             `  Current: ${this.advert_level}   Target: ${this.target_advert_level} Cost: $${Utils.pretty_num(advert_cost)}`);
