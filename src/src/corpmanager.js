@@ -9,6 +9,7 @@ export class CorpManager {
         this.buyback_price = 1000;
         this.finished = false
         this.completed = false;
+        this.divisions_completed = false;
         this.corp_upgrades_completed = false;
         this.divisions = []
     }
@@ -20,21 +21,11 @@ export class CorpManager {
             ns.tprint(`Corp created with result: ${result}`)
         }
         if (this.corp.divisions.length <= 0) {
-            const division_name = 'Warez'
-            const division_type = 'Software'
-            let high_priority = false;
-            //if (division.type = 'Software') high_priority = true
-            this.corp_api.expandIndustry(division_type, division_name)
-            this.divisions.push(new DivisionManager(ns, this.messenger, this.corp_api, division_name, division_type, high_priority))
+            this.create_next_division(ns)
         } else {
             for (const division of this.corp.divisions) {
-                let high_priority = false;
-                //if (division.type = 'Software') high_priority = true
-                this.divisions.push(new DivisionManager(ns, this.messenger, this.corp_api, division.name, division.type, high_priority))
+                this.init_division(ns, division.type, division.name)
             }
-        }
-        for (const division of this.divisions) {
-            division.init(ns);
         }
         this.name = this.corp.name
     }
@@ -42,7 +33,10 @@ export class CorpManager {
     run(ns) {
         this.stock_buyback(ns)
         this.handle_divisions(ns)
-        this.corp_upgrades(ns)
+        if (!this.corp_upgrades_completed) {
+            this.handle_corp_upgrades(ns)
+            this.check_corp_upgrade_completion(ns)
+        }
         this.status_update(ns)
     }
 
@@ -57,10 +51,48 @@ export class CorpManager {
         return this.corp_api.getCorporation()
     }
 
+    create_division(ns, division_type) {
+        const division_name = CorpHelper.get_name(division_type)
+        this.corp_api.expandIndustry(division_type, division_name);
+        this.init_division(ns, division_type, division_name);
+    }
+
+    init_division(ns, division_type, division_name) {
+        let high_priority = false
+            //if (division.type = 'Software') high_priority = true
+        let division = new DivisionManager(ns, this.messenger, this.corp_api, division_name, division_type, high_priority)
+        this.divisions.push(division);
+        division.init(ns);
+    }
+
     handle_divisions(ns) {
         for (const division of this.divisions) {
             division.run(ns);
         }
+        if (this.division_upgrades_finished) {
+            this.create_next_division(ns);
+        }
+    }
+
+    create_next_division(ns) {
+        const expansion_cost = this.corp_api.getExpandIndustryCost(next_industry)
+        this.messenger.add_message(`${this.name} ready to grow`,
+            `  Expansion cost: $${Utils.pretty_num(expansion_cost)}   Current funds: $${Utils.pretty_num(CorpHelper.current_money(ns))}`);
+        if (expansion_cost < CorpHelper.current_money(ns)) {
+            this.create_division(ns, next_industry);
+            ns.tprint(`New ${next_industry} division created.`);
+        }
+    }
+
+    get_next_industry(ns) {
+        const industries = CorpHelper.get_industries()
+        let potential_industries = []
+        for (const industry of industries) {
+            if (this.divisions.find(division => division.type == industry)) continue
+            potential_industries.push({ industry: industry, priority: CorpHelper.get_priority(industry) })
+        }
+        potential_industries.sort((a, b) => b.priority - a.priority)
+        return potential_industries[0].industry
     }
 
     check_completion(ns) {
@@ -73,7 +105,6 @@ export class CorpManager {
 
     status_update(ns) {
         let message = "";
-
         if (this.corp.public) {
             message += `Current stock price: $${Utils.pretty_num(this.corp.sharePrice,2)} `
             if (this.corp.issuedShares > 0) {
@@ -84,7 +115,7 @@ export class CorpManager {
         message += `  Current funds: $${Utils.pretty_num(this.corp.funds)}\n`
         message += `Profit: $${Utils.pretty_num(this.corp.revenue - this.corp.expenses)} Mult: ${Utils.pretty_num(this.corp.revenue / this.corp.expenses,2)}   Revenue: $${Utils.pretty_num(this.corp.revenue)}   Expenses: $${Utils.pretty_num(this.corp.expenses)}\n`
         if (message != "") {
-            this.messenger.add_message('CorpRunner Update', message)
+            this.messenger.add_message('CorpManager Update', message)
         }
     }
 
@@ -111,51 +142,78 @@ export class CorpManager {
         }
     }
 
-    corp_upgrades(ns) {
-        if (!this.division_upgrades_finished) return;
-        const upgrades = [
-            { name: "Smart Factories", weight: 1, max: 10 },
-            { name: "Smart Storage", weight: 1, max: 10 },
-            { name: "DreamSense", weight: 1, max: 10 },
-            { name: "Wilson Analytics", weight: 1, max: 10 },
-            { name: "Nuoptimal Nootropic Injector Implants", weight: 1, max: 10 },
-            { name: "Speech Processor Implants", weight: 1, max: 10 },
-            { name: "Neural Accelerators", weight: 1, max: 10 },
-            { name: "FocusWires", weight: 1, max: 10 },
-            { name: "ABC SalesBots", weight: 1, max: 10 },
-            { name: "Project Insight", weight: 1, max: 10 },
-        ]
-
+    check_corp_upgrade_completion(ns) {
+        let upgrades = this.get_corp_upgrades(ns)
         let upgrades_completed = true
-
         for (const upgrade of upgrades) {
             const current_level = this.corp_api.getUpgradeLevel(upgrade.name)
             if (current_level < upgrade.max) {
                 upgrades_completed = false
-                const cost = this.corp_api.getUpgradeLevelCost(upgrade.name)
-                if (cost < CorpHelper.current_money(ns)) {
-                    this.corp_api.levelUpgrade(upgrade.name)
-                    ns.tprint(`${upgrade.name} upgraded to level ${current_level+1}`)
+            }
+        }
+        this.corp_upgrades_completed = upgrades_completed;
+    }
+
+    handle_corp_upgrades(ns) {
+        const upgrade = this.get_next_corp_upgrade(ns)
+        const current_upgrade_max = this.divisions.length - 1
+        if (upgrade.level > current_upgrade_max && !this.divisions_completed) return
+        const cost = this.corp_api.getUpgradeLevelCost(upgrade.name)
+        if (cost < CorpHelper.current_money(ns)) {
+            this.corp_api.levelUpgrade(upgrade.name)
+            ns.tprint(`${upgrade.name} upgraded to level ${current_level+1}`)
+        } else {
+            const message = `  ${upgrade.name} cost: ${cost}\n`
+            this.messenger.add_message('CorpManager Next Corp Upgrade', message)
+        }
+    }
+
+    get_next_corp_upgrade(ns) {
+        let upgrades = this.get_corp_upgrades(ns)
+        upgrades = upgrades.sort((a, b) => b.priority - a.priority)
+        for (let i = 1; i < 20; i++) {
+            for (let upgrade of upgrades) {
+                upgrade.level = this.corp_api.getUpgradeLevel(upgrade.name)
+                if (upgrade.level < upgrade.max) {
+                    return upgrade
                 }
             }
         }
+        ns.tprint(`ERROR: Unexpected end when trying to find next corp upgrade.`)
+    }
 
-        this.corp_upgrades_completed = upgrades_completed;
+    get_corp_upgrades(ns) {
+        return [
+            { name: "Smart Factories", priority: 10, max: 10 },
+            { name: "Smart Storage", priority: 9, max: 10 },
+            { name: "DreamSense", priority: 1, max: 10 },
+            { name: "Wilson Analytics", priority: 1, max: 10 },
+            { name: "Nuoptimal Nootropic Injector Implants", priority: 1, max: 10 },
+            { name: "Speech Processor Implants", priority: 1, max: 10 },
+            { name: "Neural Accelerators", priority: 1, max: 10 },
+            { name: "FocusWires", priority: 1, max: 10 },
+            { name: "ABC SalesBots", priority: 1, max: 10 },
+            { name: "Project Insight", priority: 1, max: 10 },
+        ]
     }
 }
 
 class CorpHelper {
+    static get_industries() {
+        return ['Software', 'Agriculture', 'Food', 'Tobacco', 'Chemical', 'Fishing', 'Utilities', 'Pharmaceutical', 'Energy']
+    }
+
     static get_industry_data(industry, type) {
         const industries = {
-            Software: { materials_consumed: ['Hardware', 'Energy'], materials_produced: ['AI Cores'], preferred_material: `Hardware`, makes_products: true },
-            Agriculture: { materials_consumed: ['Water', 'Energy'], materials_produced: ['Food', 'Plants'], preferred_material: `Real Estate`, makes_products: false },
-            Food: { materials_consumed: ['Food', 'Water', 'Energy'], materials_produced: [], preferred_material: `AI Cores`, makes_products: true },
-            Tobacco: { materials_consumed: ['Plants', 'Water'], materials_produced: [], preferred_material: `Robots`, makes_products: true },
-            Chemical: { materials_consumed: ['Plants', 'Water', 'Energy'], materials_produced: ['Chemicals'], preferred_material: `Robots`, makes_products: false },
-            Fishing: { materials_consumed: ['Energy'], materials_produced: ['Food'], preferred_material: `Robots`, makes_products: false },
-            Utilities: { materials_consumed: ['Hardware', 'Metal'], materials_produced: ['Water'], preferred_material: `Robots`, makes_products: false },
-            Pharmaceutical: { materials_consumed: ['Chemicals', 'Water', 'Energy'], materials_produced: ['Drugs'], preferred_material: `Robots`, makes_products: true },
-            Energy: { materials_consumed: ['Hardware', 'Metal'], materials_produced: ['Energy'], preferred_material: `Real Estate`, makes_products: false },
+            Software: { name: 'Warez', materials_consumed: ['Hardware', 'Energy'], materials_produced: ['AI Cores'], preferred_material: `Hardware`, makes_products: true, priority: 10 },
+            Agriculture: { name: 'Cows', materials_consumed: ['Water', 'Energy'], materials_produced: ['Food', 'Plants'], preferred_material: `Real Estate`, makes_products: false, priority: 8 },
+            Food: { name: 'Burritoz', materials_consumed: ['Food', 'Water', 'Energy'], materials_produced: [], preferred_material: `AI Cores`, makes_products: true, priority: 7 },
+            Tobacco: { name: 'Smokez', materials_consumed: ['Plants', 'Water'], materials_produced: [], preferred_material: `Robots`, makes_products: true, priority: 9 },
+            Chemical: { name: 'Chemz', materials_consumed: ['Plants', 'Water', 'Energy'], materials_produced: ['Chemicals'], preferred_material: `Robots`, makes_products: false, priority: 6 },
+            Fishing: { name: 'Sushiz', materials_consumed: ['Energy'], materials_produced: ['Food'], preferred_material: `Robots`, makes_products: false, priority: 5 },
+            Utilities: { name: 'Poopiez', materials_consumed: ['Hardware', 'Metal'], materials_produced: ['Water'], preferred_material: `Robots`, makes_products: false, priority: 4 },
+            Pharmaceutical: { name: 'Drugz', materials_consumed: ['Chemicals', 'Water', 'Energy'], materials_produced: ['Drugs'], preferred_material: `Robots`, makes_products: true, priority: 3 },
+            Energy: { name: 'Wattz', materials_consumed: ['Hardware', 'Metal'], materials_produced: ['Energy'], preferred_material: `Real Estate`, makes_products: false, priority: 2 },
         }
 
         return industries[industry][type];
@@ -176,6 +234,15 @@ class CorpHelper {
     static makes_products(industry) {
         return CorpHelper.get_industry_data(industry, 'makes_products')
     }
+
+    static get_priority(industry) {
+        return CorpHelper.get_industry_data(industry, 'priority')
+    }
+
+    static get_name(industry) {
+        return CorpHelper.get_industry_data(industry, 'name')
+    }
+
 
     static current_money(ns) {
         return eval('ns.corporation').getCorporation().funds
@@ -199,6 +266,8 @@ class DivisionManager {
         this.base_product_investment = 1000000000 // 1 billion
         this.completed = false;
         this.advert_completed = false;
+        this.expansion_completed = false;
+        this.initial_products_completed = false;
         this.fraud = false;
         this.makes_products = CorpHelper.makes_products(this.type)
         this.produced_materials = CorpHelper.materials_produced(this.type);
@@ -215,8 +284,9 @@ class DivisionManager {
         this.handle_cities(ns)
         this.handle_warehouse_apis(ns)
         this.handle_office_apis(ns)
+        this.check_expansion_completion(ns)
         this.status_update(ns)
-            //this.check_completion(ns)
+        this.check_completion(ns)
     }
 
     get current_city_names() {
@@ -276,13 +346,15 @@ class DivisionManager {
             }
         }
 
-        this.messenger.add_message(`${this.name} status update`, message);
+        this.messenger.add_message(`${this.name} status update.`, message);
     }
 
     check_completion(ns) {
-        //TODO: Check for max division size
+        if (this.completed) return
         if (!this.advert_completed) return false
         if (!this.city_upgrades_finished) return false
+        if (!this.expansion_completed) return false
+        if (!this.initial_products_completed) return false
         ns.tprint(`${this.name} all upgrades complete!`)
         this.completed = true
     }
@@ -295,11 +367,20 @@ class DivisionManager {
         }
     }
 
+    check_expansion_completion(ns) {
+        if (this.expansion_completed) return
+        if (this.cities.length >= Utils.cities.length) {
+            this.expansion_completed = true
+            ns.tprint(`${this.name} city expansion complete.`)
+        }
+    }
+
     handle_warehouse_apis(ns) {
         if (!this.corp_api.hasUnlockUpgrade('Warehouse API')) return
         this.create_products(ns)
         this.update_products(ns)
-        this.grow_division(ns)
+        this.check_product_completion(ns)
+        this.expand_division_to_new_city(ns)
     }
 
     handle_office_apis(ns) {
@@ -339,7 +420,7 @@ class DivisionManager {
         this.cities.push(city);
     }
 
-    grow_division(ns) {
+    expand_division_to_new_city(ns) {
         if (!this.city_upgrades_finished) return
         const expansion_cost = this.corp_api.getExpandCityCost() + this.corp_api.getPurchaseWarehouseCost()
         this.messenger.add_message(`${this.name} ready to grow`,
@@ -353,6 +434,14 @@ class DivisionManager {
                 ns.tprint(`${this.name} expanded to ${city_name}.`)
                 return;
             }
+        }
+    }
+
+    check_product_completion(ns) {
+        if (this.initial_products_completed) return
+        if (!this.product_under_development() &&
+            this.products.length >= this.max_products) {
+            this.initial_products_completed = true
         }
     }
 
