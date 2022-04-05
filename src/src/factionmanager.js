@@ -130,21 +130,21 @@ export class FactionManager {
                     result = ns.getServerMoneyAvailable('home')
                     if (result < requirement.amount) {
                         completed = false;
-                        reason += `Insufficient ${requirement.type}: ${requirement.amount}, current: ${result}\n`
+                        reason += `Insufficient ${requirement.type}: ${Utils.pretty_num(requirement.amount)}, current: ${Utils.pretty_num(result)}\n`
                     }
                     break;
                 case 'hacking':
                     result = ns.getPlayer().hacking
                     if (result < requirement.amount) {
                         completed = false;
-                        reason += `Insufficient ${requirement.type}: ${requirement.amount}, current: ${result}\n`
+                        reason += `Insufficient ${requirement.type}: ${Utils.pretty_num(requirement.amount)}, current: ${Utils.pretty_num(result)}\n`
                     }
                     break;
                 case 'karma':
                     result = ns.heart.break()
                     if (result > requirement.amount) {
                         completed = false;
-                        reason += `Insufficient ${requirement.type}: ${requirement.amount}, current: ${result}\n`
+                        reason += `Insufficient ${requirement.type}: ${Utils.pretty_num(requirement.amount)}, current: ${Utils.pretty_num(result)}\n`
                     }
                     break;
                 case 'combat':
@@ -152,7 +152,7 @@ export class FactionManager {
                         result = ns.getPlayer()[stat]
                         if (result < requirement.amount) {
                             completed = false;
-                            reason += `Insufficient ${stat}: ${requirement.amount}, current: ${result}\n`
+                            reason += `Insufficient ${requirement.type}: ${Utils.pretty_num(requirement.amount)}, current: ${Utils.pretty_num(result)}\n`
                         }
                     }
                     break;
