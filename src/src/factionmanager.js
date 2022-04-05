@@ -97,11 +97,9 @@ export class FactionManager {
     }
 
     handle_current_faction(ns) {
-        this.check_completion(ns);
+        this.check_eligibility(ns);
         if (this.pursue_goal) {
             this.handle_current_actions(ns);
-        } else {
-            this.get_next_faction(ns)
         }
     }
 
@@ -120,7 +118,7 @@ export class FactionManager {
         }
     }
 
-    check_completion(ns) {
+    check_eligibility(ns) {
         let completed = true;
         let reason = ''
         let result
@@ -167,17 +165,14 @@ export class FactionManager {
             this.join_next_faction(ns);
         } else {
             ns.tprint(`Unable to join ${this.next_faction.faction} at this time due to the following reasons:\n${reason}`)
+            this.get_next_faction(ns)
         }
     }
 
     get_next_faction(ns) {
-        this.next_faction = this.factions_to_join.shift()
         while (this.factions_to_join.length > 0) {
-            if (ns.getPlayer().factions.includes(this.next_faction.faction)) {
-                this.get_next_faction(ns)
-                return
-            } else {
-                this.next_faction = this.factions_to_join.shift()
+            this.next_faction = this.factions_to_join.shift()
+            if (!ns.getPlayer().factions.includes(this.next_faction.faction)) {
                 ns.tprint(`Next targeted faction: ${this.next_faction.faction}`)
                 return
             }
@@ -196,7 +191,7 @@ export class FactionManager {
                 this.get_next_faction(ns)
             }
         } else {
-            ns.tprint(`WARN: Could not travel to ${this.next_faction.location}`)
+            ns.print(`WARN: Could not travel to ${this.next_faction.location}`)
         }
     }
 
