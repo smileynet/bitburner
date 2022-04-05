@@ -159,8 +159,7 @@ export class BladeManager {
             skills = all_skills
         }
         skills.sort((a, b) => b.priority - a.priority);
-        let i = 1
-        for (i = 1; i < 1000; i++) {
+        for (let i = 1; i < 1000; i++) {
             for (const skill of skills) {
                 const level = ns.bladeburner.getSkillLevel(skill.name)
                 if (level > i * skill.priority) continue;
