@@ -18,6 +18,9 @@ export class BladeManager {
 
     async init(ns) {
         let result = false;
+        if (ns.isRunning('/src/repmanager.js', 'home') && !ns.fileExists('simulacrum.txt', 'home')) {
+            ns.kill('/src/repmanager.js', 'home')
+        }
         while (!result && ns.isBusy()) {
             result = ns.stopAction();
             ns.tprint(`Waiting for previous action to finish.`)

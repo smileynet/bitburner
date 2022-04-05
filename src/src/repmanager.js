@@ -65,6 +65,7 @@ export class RepManager {
 
     prioritize_goals(ns) {
         ns.print(`Goals:`)
+        this.goals.sort((a, b) => a.rep - b.rep)
         for (const goal of this.goals) {
             this.set_priority(ns, goal)
             ns.print(`${goal.faction}   rep: ${goal.rep}   priority: ${goal.priority}`)
@@ -76,7 +77,7 @@ export class RepManager {
         const faction = goal.faction
         switch (faction) {
             case 'CyberSec':
-                goal.priority = 9
+                goal.priority = 11
                 break;
             case 'Sector-12':
                 goal.priority = 10

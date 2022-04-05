@@ -8,22 +8,26 @@ export class FactionManager {
         this.messenger = messenger
         this.finished = false;
         this.join_criminal_orgs = true;
+        this.pursue_goal = false;
     }
 
     init(ns) {
         this.init_faction_data(ns);
         this.handle_additional_factions(ns);
         this.handle_city_factions(ns);
+        this.get_next_faction(ns)
     }
 
     run(ns) {
-        this.handle_current_faction(ns)
-        this.join_factions(ns);
-        this.display_current_target(ns)
+        if (!this.finished) {
+            this.handle_current_faction(ns)
+            this.join_factions(ns);
+            this.display_current_target(ns)
+        }
     }
 
     finish(ns) {
-        ns.tprint(`All targeted factions joining. Exiting & running AugManager to set faction rep goals.`)
+        ns.tprint(`All eligible factions joined. Exiting & running AugManager to set faction rep goals.`)
         ns.run(`/src/scriptlauncher.js`, 1, `/src/augmanager.js`, `check`)
     }
 
@@ -38,7 +42,6 @@ export class FactionManager {
         }]
 
         this.factions_to_join = faction_data
-        this.get_next_faction(ns)
     }
 
     handle_additional_factions(ns) {
@@ -59,13 +62,47 @@ export class FactionManager {
                     { type: 'combat', amount: 75 },
                     { type: 'karma', amount: -18 }
                 ]
+            }, {
+                faction: 'Speakers for the Dead',
+                location: 'none',
+                script: '/utils/do_crime.js',
+                requirements: [
+                    { type: 'hacking', amount: 100 },
+                    { type: 'combat', amount: 300 },
+                    { type: 'karma', amount: -45 }
+                ]
+            }, {
+                faction: 'The Dark Army',
+                location: 'Chongqing',
+                script: '/utils/do_crime.js',
+                requirements: [
+                    { type: 'hacking', amount: 300 },
+                    { type: 'combat', amount: 300 },
+                    { type: 'karma', amount: -45 }
+                ]
+            }, {
+                faction: 'The Syndicate',
+                location: 'Sector-12',
+                script: '/utils/do_crime.js',
+                requirements: [
+                    { type: 'hacking', amount: 200 },
+                    { type: 'combat', amount: 200 },
+                    { type: 'cash', amount: 10000000 },
+                    { type: 'karma', amount: -95 }
+                ]
             }]
+
+            this.factions_to_join = [...this.factions_to_join, ...criminal_data]
         }
     }
 
     handle_current_faction(ns) {
         this.check_completion(ns);
-        this.handle_current_actions(ns);
+        if (this.pursue_goal) {
+            this.handle_current_actions(ns);
+        } else {
+            this.get_next_faction(ns)
+        }
     }
 
     handle_current_actions(ns) {
@@ -85,27 +122,37 @@ export class FactionManager {
 
     check_completion(ns) {
         let completed = true;
+        let reason = ''
+        let result
         for (const requirement of this.next_faction.requirements) {
             switch (requirement.type) {
                 case 'cash':
-                    if (ns.getServerMoneyAvailable('home') < requirement.amount) {
+                    result = ns.getServerMoneyAvailable('home')
+                    if (result < requirement.amount) {
                         completed = false;
+                        reason += `Insufficient ${requirement.type}: ${requirement.amount}, current: ${result}\n`
                     }
                     break;
                 case 'hacking':
-                    if (ns.getPlayer().hacking < requirement.amount) {
+                    result = ns.getPlayer().hacking
+                    if (result < requirement.amount) {
                         completed = false;
+                        reason += `Insufficient ${requirement.type}: ${requirement.amount}, current: ${result}\n`
                     }
                     break;
                 case 'karma':
-                    if (ns.heart.break() < requirement.amount) {
+                    result = ns.heart.break()
+                    if (result > requirement.amount) {
                         completed = false;
+                        reason += `Insufficient ${requirement.type}: ${requirement.amount}, current: ${result}\n`
                     }
                     break;
                 case 'combat':
                     for (const stat of Utils.combat_stats) {
-                        if (ns.getPlayer()[stat] < requirement.amount) {
+                        result = ns.getPlayer()[stat]
+                        if (result < requirement.amount) {
                             completed = false;
+                            reason += `Insufficient ${stat}: ${requirement.amount}, current: ${result}\n`
                         }
                     }
                     break;
@@ -118,16 +165,24 @@ export class FactionManager {
             this.finish_current_script(ns)
             this.messenger.add_message('FactionManager faction ready to join', `Requirements for joining ${this.next_faction.faction} met. Traveling to ${this.next_faction.location}`);
             this.join_next_faction(ns);
+        } else {
+            ns.tprint(`Unable to join ${this.next_faction.faction} at this time due to the following reasons:\n${reason}`)
         }
     }
 
     get_next_faction(ns) {
-        if (this.factions_to_join.length > 0) {
-            this.next_faction = this.factions_to_join.shift()
-            ns.tprint(`Next targeted faction: ${this.next_faction.faction}`)
-        } else {
-            this.finished = true;
+        this.next_faction = this.factions_to_join.shift()
+        while (this.factions_to_join.length > 0) {
+            if (ns.getPlayer().factions.includes(this.next_faction.faction)) {
+                this.get_next_faction(ns)
+                return
+            } else {
+                this.next_faction = this.factions_to_join.shift()
+                ns.tprint(`Next targeted faction: ${this.next_faction.faction}`)
+                return
+            }
         }
+        this.finished = true;
     }
 
     join_next_faction(ns) {
@@ -146,6 +201,7 @@ export class FactionManager {
     }
 
     display_current_target(ns) {
+        if (this.finished) return
         let message = ` Currently targeted faction: ${this.next_faction.faction}   Location: ${this.next_faction.location}\n`
         message += `  Requirements:\n`
         for (const requirement of this.next_faction.requirements) {
@@ -166,23 +222,23 @@ export class FactionManager {
     }
 
     handle_city_factions(ns) {
-        let city_faction = null
+        let selected_city = 'Aevum'
         for (const city of Utils.cities) {
-            if (AugHelper.city_faction_has_unpurchased_augs(ns, city).length > 2) {
-                city_faction = {
-                    faction: city,
-                    location: city,
-                    requirements: [
-                        { type: 'cash', amount: FactionHelper.get_city_faction_required_cash(city) }
-                    ]
-                }
+            if (AugHelper.city_faction_has_unpurchased_augs(ns, city)) {
+                selected_city = city
                 break;
             }
         }
-        if (city_faction) {
-            ns.tprint(`Next city faction to join: ${city_faction.faction}`)
-            this.factions_to_join.push(city_faction)
+        ns.tprint(`Next city faction to join: ${selected_city}`)
+
+        let city_faction = {
+            faction: selected_city,
+            location: selected_city,
+            requirements: [
+                { type: 'cash', amount: FactionHelper.get_city_faction_required_cash(selected_city) }
+            ]
         }
+        this.factions_to_join.push(city_faction)
     }
 }
 

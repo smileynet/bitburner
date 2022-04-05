@@ -7,8 +7,9 @@ class Waker {
 
         this.tasks = [
             { name: 'faction_manager', enabled: true, running: false, script: '/src/factionmanager.js', requirements: 'Runs when player has $1m.' },
+            { name: 'bladeburner', enabled: true, running: false, script: '/src/blademanager.js', requirements: 'In Bladebunners and saving money (money.txt exists).' },
             { name: 'purchase_manager', enabled: true, running: false, script: '/src/purchasemanager.js', requirements: 'None.' },
-            { name: 'aug_purchasing', enabled: true, running: false, script: '/src/augmanager.js', requirements: 'More than 10 augs ready to buy.' },
+            { name: 'aug_purchasing', enabled: true, running: false, script: '/src/augmanager.js', requirements: 'More than 5 augs ready to buy.' },
         ];
     }
 
@@ -44,13 +45,19 @@ class Waker {
             case 'purchase_manager':
                 return true
             case 'aug_purchasing':
-                if (ns.fileExists('affordable_augs.txt', 'home')) {
-                    return parseInt(ns.read('affordable_augs.txt')) >= 10
+                if (ns.fileExists('affordable_augs.txt', 'home') && parseInt(ns.read('affordable_augs.txt')) >= 5) {
+                    return (!ns.isRunning('/src/augmanager.js', 'home', 'check') && !ns.isRunning('/src/augmanager.js', 'home'))
                 } else {
                     return false
                 }
             case 'faction_manager':
                 return ns.getServerMoneyAvailable("home") >= 1000000
+            case 'bladeburner':
+                if (ns.fileExists('money.txt', 'home') && ns.getPlayer().inBladeburner) {
+                    return true
+                } else {
+                    return false
+                }
             default:
                 ns.tprint(`Unrecognized sleeper task: ${task}`)
                 return false;
