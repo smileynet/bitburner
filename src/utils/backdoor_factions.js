@@ -39,6 +39,7 @@ async function backdoor_server(ns, server_name) {
         }
         ns.print(`${server_name} has been backdoored.`)
         ns.tprint(`${server_name} has been backdoored.`)
+        const faction_script = '/src/factionmanager.js'
         ns.connect('home');
     }
 }
@@ -52,5 +53,9 @@ export async function main(ns) {
         if (ns.hasRootAccess(server_name)) {
             await backdoor_server(ns, server_name);
         }
+    }
+    if (!ns.isRunning(faction_script, 'home')) {
+        const result = ns.run(`/src/scriptlauncher.js`, 1, faction_script)
+        ns.tprint(`Tried to launch script ${faction_script}, result: ${result}`)
     }
 }
