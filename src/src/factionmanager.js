@@ -211,6 +211,7 @@ export class FactionManager {
     }
 
     join_factions(ns) {
+        if (!this.next_faction) return
         const faction_invites = ns.checkFactionInvitations();
         for (const faction of faction_invites) {
             if (Utils.cities.includes(faction)) {
