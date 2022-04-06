@@ -16,9 +16,9 @@ export class AugManager {
 
     init(ns) {
         if (this.check) {
-            ns.tprint(`Updating rep goals!`)
+            ns.print(`Updating rep goals!`)
         } else {
-            ns.tprint(`Buying augs! Cheap: ${this.start_with_affordable}`)
+            ns.print(`Buying augs! Cheap: ${this.start_with_affordable}`)
         }
     }
 
@@ -37,7 +37,7 @@ export class AugManager {
         if (!this.check) {
             const num_augs = ns.getOwnedAugmentations(true).length - ns.getOwnedAugmentations(false).length
             if (num_augs >= 5) {
-                await ns.write('last_reboot.txt', new Date().toLocaleString(), 'a')
+                await ns.write('last_reboot.txt', new Date().toLocaleString() + '\n', 'a')
                 ns.installAugmentations('init.js')
             } else {
                 ns.tprint(`Exiting without install. ${num_augs} ready to install.`)

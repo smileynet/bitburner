@@ -35,14 +35,12 @@ export class ScriptLauncher {
         if (this.script_args == '') {
             result = ns.run(this.script_name);
         } else if (Array.isArray(this.script_args)) {
-            ns.tprint(this.script_args)
             result = ns.run(this.script_name, 1, ...this.script_args);
         } else {
-            ns.tprint(`single arg ${this.script_args}`)
             result = ns.run(this.script_name, 1, this.script_args);
         }
         if (result > 0) {
-            ns.tprint(`${this.script_name} with args ${this.script_args} launched successfully!`)
+            ns.tprint(`${this.script_name} launched successfully with args ${this.script_args}`)
             const reserved = ns.getServerMaxRam('home') > 1024 ? 66 : 8
             await ns.write('reserved.txt', reserved, "w");
             this.finished = true;

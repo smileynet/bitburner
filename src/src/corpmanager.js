@@ -75,6 +75,7 @@ export class CorpManager {
     }
 
     create_next_division(ns) {
+        const next_industry = this.get_next_industry(ns)
         const expansion_cost = this.corp_api.getExpandIndustryCost(next_industry)
         this.messenger.add_message(`${this.name} ready to grow`,
             `  Expansion cost: $${Utils.pretty_num(expansion_cost)}   Current funds: $${Utils.pretty_num(CorpHelper.current_money(ns))}`);
@@ -99,7 +100,7 @@ export class CorpManager {
         if (this.fraud) return false
         if (!this.corp_upgrades_completed) return false
         if (!this.division_upgrades_finished) return false
-        ns.tprint(`${this.name} all upgrades complete!`)
+        ns.print(`${this.name} all upgrades complete!`)
         this.completed = true
     }
 
@@ -357,7 +358,7 @@ class DivisionManager {
         if (!this.city_upgrades_finished) return false
         if (!this.expansion_completed) return false
         if (!this.initial_products_completed) return false
-        ns.tprint(`${this.name} all upgrades complete!`)
+        ns.print(`${this.name} all upgrades complete!`)
         this.completed = true
     }
 
@@ -365,7 +366,7 @@ class DivisionManager {
         if (this.advert_completed) return
         if (this.advert_level >= this.target_advert_level) {
             this.advert_completed = true;
-            ns.tprint(`${this.name} AdVert at target level: ${this.advert_level}.`)
+            ns.print(`${this.name} AdVert at target level: ${this.advert_level}.`)
         }
     }
 
@@ -373,7 +374,7 @@ class DivisionManager {
         if (this.expansion_completed) return
         if (this.cities.length >= Utils.cities.length) {
             this.expansion_completed = true
-            ns.tprint(`${this.name} city expansion complete.`)
+            ns.print(`${this.name} city expansion complete.`)
         }
     }
 
@@ -381,7 +382,7 @@ class DivisionManager {
         if (!this.corp_api.hasUnlockUpgrade('Warehouse API')) return
         this.create_products(ns)
         this.update_products(ns)
-        this.check_product_completion(ns)
+        this.check_initial_product_completion(ns)
         this.expand_division_to_new_city(ns)
     }
 
@@ -399,14 +400,20 @@ class DivisionManager {
     }
 
     init_research(ns) {
-        const research_names = [
+        let research_names = [
             'Hi-Tech R&D Laboratory',
             'Market-TA.I',
-            'Market-TA.II',
-            'uPgrade: Fulcrum',
-            'uPgrade: Capacity.I',
-            'uPgrade: Capacity.II',
+            'Market-TA.II'
         ]
+        if (this.makes_products) {
+            const product_research = [
+                'uPgrade: Fulcrum',
+                'uPgrade: Capacity.I',
+                'uPgrade: Capacity.II',
+            ]
+            research_names = [...research_names, ...product_research]
+        }
+
         this.research = {}
         for (const research_name of research_names) {
             let info = {}
@@ -423,7 +430,7 @@ class DivisionManager {
     }
 
     expand_division_to_new_city(ns) {
-        if (!this.city_upgrades_finished) return
+        if (!this.city_upgrades_finished || this.expansion_completed) return
         const expansion_cost = this.corp_api.getExpandCityCost() + this.corp_api.getPurchaseWarehouseCost()
         this.messenger.add_message(`${this.name} ready to grow`,
             `  Expansion cost: $${Utils.pretty_num(expansion_cost)}   Current funds: $${Utils.pretty_num(CorpHelper.current_money(ns))}`);
@@ -439,8 +446,9 @@ class DivisionManager {
         }
     }
 
-    check_product_completion(ns) {
+    check_initial_product_completion(ns) {
         if (this.initial_products_completed) return
+        if (!this.makes_products) this.initial_products_completed = true;
         if (!this.product_under_development() &&
             this.products.length >= this.max_products) {
             this.initial_products_completed = true
@@ -487,6 +495,7 @@ class DivisionManager {
     }
 
     update_products(ns) {
+        if (!this.makes_products) return
         const corp_api_unlocked = this.corp_api.hasUnlockUpgrade('Office API')
         for (const product of this.products) {
             if (this.fraud) {
@@ -499,7 +508,7 @@ class DivisionManager {
                 if (corp_api_unlocked && this.corp_api.hasResearched(this.name, 'Market-TA.II')) {
                     this.corp_api.setProductMarketTA2(this.name, product, true)
                     for (const city of this.cities) {
-                        if (productData.cityData[city][0] > 0) {
+                        if (productData.cityData[city.name][0] > 0) {
                             this.corp_api.setProductMarketTA2(this.name, product, false)
                             break;
                         }
@@ -548,7 +557,7 @@ class DivisionManager {
 
     upgrade_advert(ns) {
         if (this.advert_completed) return
-        if (this.cities.lenth < this.advert_level && !this.expansion_completed) return
+        if (this.cities.length < this.advert_level && !this.expansion_completed) return
         const advert_cost = this.corp_api.getHireAdVertCost(this.name)
         this.messenger.add_message(`${this.name} needs to upgrade advert`,
             `  Current: ${this.advert_level}   Target: ${this.target_advert_level} Cost: $${Utils.pretty_num(advert_cost)}`);
@@ -633,7 +642,7 @@ class CityManager {
     check_completion(ns) {
         if (!this.warehouse_completed) return false
         if (!this.office_completed) return false
-        ns.tprint(`${this.division_name} ${this.name} all upgrades complete!`)
+        ns.print(`${this.division_name} ${this.name} all upgrades complete!`)
         this.completed = true
     }
 
@@ -662,7 +671,7 @@ class CityManager {
         this.messenger.add_message(`${this.division_name} ${this.name} office status`,
             `  Current office level: ${this.office.size}   target: ${this.target_office_size}`);
         if (this.office.size >= this.target_office_size) {
-            ns.tprint(`${this.division_name} office in ${this.name} at target level: ${this.target_office_size}.`)
+            ns.print(`${this.division_name} office in ${this.name} at target level: ${this.target_office_size}.`)
             this.office_completed = true
         }
     }
@@ -672,7 +681,7 @@ class CityManager {
             `  Current warehouse level: ${this.warehouse.level}   target: ${this.target_warehouse_level}`);
         if (this.warehouse.level >= this.target_warehouse_level) {
             this.warehouse_completed = true
-            ns.tprint(`${this.division_name} warehouse in ${this.name} at target level: ${this.target_warehouse_level}.`)
+            ns.print(`${this.division_name} warehouse in ${this.name} at target level: ${this.target_warehouse_level}.`)
         }
     }
 

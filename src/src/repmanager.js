@@ -8,6 +8,7 @@ export class RepManager {
         this.faction_favor_to_buy = 150;
         this.default_focus = false;
         this.buy_augs_on_exit = buy_augs_on_exit
+        this.min_balance_for_donation = 1000000000
     }
 
     async init(ns) {
@@ -133,8 +134,9 @@ export class RepManager {
     }
 
     attempt_donation(ns, faction_goal) {
-        if (ns.getFactionFavor(faction_goal.faction) >= this.faction_favor_to_buy) {
-            const amount = Math.floor(ns.getServerMoneyAvailable("home") * 0.1)
+        const current_money = ns.getServerMoneyAvailable("home")
+        if (current_money > this.min_balance_for_donation && ns.getFactionFavor(faction_goal.faction) >= this.faction_favor_to_buy) {
+            const amount = Math.floor(current_money * 0.1)
             const result = ns.donateToFaction(faction_goal.faction, amount)
             let new_rep = ns.getFactionRep(this.current_goal.faction) + ns.getPlayer().workRepGained
             if (!result) ns.tprint(`WARN: Buying reputation failed!`)
@@ -143,7 +145,6 @@ export class RepManager {
     }
 
     do_work(ns, faction_goal) {
-
         let work_types = ["Hacking Contracts", "Security Work", "Field Work"]
         for (const work_type of work_types) {
             if (ns.workForFaction(faction_goal.faction, work_type, this.default_focus)) {

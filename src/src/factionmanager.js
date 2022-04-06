@@ -9,6 +9,7 @@ export class FactionManager {
         this.finished = false;
         this.join_criminal_orgs = true;
         this.pursue_goal = false;
+        this.default_timeout = 180
     }
 
     init(ns) {
@@ -27,7 +28,7 @@ export class FactionManager {
     }
 
     finish(ns) {
-        ns.tprint(`All eligible factions joined. Exiting & running AugManager to set faction rep goals.`)
+        ns.print(`All eligible factions joined. Exiting & running AugManager to set faction rep goals.`)
         ns.run(`/src/scriptlauncher.js`, 1, `/src/augmanager.js`, `check`)
     }
 
@@ -63,15 +64,6 @@ export class FactionManager {
                     { type: 'karma', amount: -18 }
                 ]
             }, {
-                faction: 'Speakers for the Dead',
-                location: 'none',
-                script: '/utils/do_crime.js',
-                requirements: [
-                    { type: 'hacking', amount: 100 },
-                    { type: 'combat', amount: 300 },
-                    { type: 'karma', amount: -45 }
-                ]
-            }, {
                 faction: 'The Dark Army',
                 location: 'Chongqing',
                 script: '/utils/do_crime.js',
@@ -94,18 +86,36 @@ export class FactionManager {
 
             this.factions_to_join = [...this.factions_to_join, ...criminal_data]
         }
+
+        /* inactive
+        {
+                faction: 'Speakers for the Dead',
+                location: 'none',
+                script: '/utils/do_crime.js',
+                requirements: [
+                    { type: 'hacking', amount: 100 },
+                    { type: 'combat', amount: 300 },
+                    { type: 'karma', amount: -45 }
+                ]
+            }, */
     }
 
     handle_current_faction(ns) {
-        this.check_eligibility(ns);
-        if (this.pursue_goal) {
-            this.handle_current_actions(ns);
+        if (this.current_timeout <= 0) {
+            ns.print(`Unable to join ${this.next_faction.faction} at this time, timed out while waiting for faction.`)
+            this.get_next_faction(ns)
+        } else {
+            this.check_eligibility(ns);
+            if (this.pursue_goal) {
+                this.handle_current_actions(ns);
+            }
+            this.current_timeout--
         }
     }
 
     handle_current_actions(ns) {
         if (this.next_faction.script && !ns.isRunning(this.next_faction.script, 'home')) {
-            ns.tprint(`Launching ${this.next_faction.script} for faction ${this.next_faction.faction}`)
+            ns.print(`Launching ${this.next_faction.script} for faction ${this.next_faction.faction}`)
             ns.run('/src/scriptlauncher.js', 1, this.next_faction.script)
         }
         // TODO: Handle stat gains
@@ -113,7 +123,7 @@ export class FactionManager {
 
     finish_current_script(ns) {
         if (this.next_faction.script && ns.isRunning(this.next_faction.script, 'home')) {
-            ns.tprint(`Killing ${this.next_faction.script} for faction ${this.next_faction.faction}`)
+            ns.print(`Killing ${this.next_faction.script} for faction ${this.next_faction.faction}`)
             ns.kill(this.next_faction.script, 'home', '')
         }
     }
@@ -164,7 +174,7 @@ export class FactionManager {
             this.messenger.add_message('FactionManager faction ready to join', `Requirements for joining ${this.next_faction.faction} met. Traveling to ${this.next_faction.location}`);
             this.join_next_faction(ns);
         } else {
-            ns.tprint(`Unable to join ${this.next_faction.faction} at this time due to the following reasons:\n${reason}`)
+            ns.print(`Unable to join ${this.next_faction.faction} at this time due to the following reasons:\n${reason}`)
             this.get_next_faction(ns)
         }
     }
@@ -173,7 +183,8 @@ export class FactionManager {
         while (this.factions_to_join.length > 0) {
             this.next_faction = this.factions_to_join.shift()
             if (!ns.getPlayer().factions.includes(this.next_faction.faction)) {
-                ns.tprint(`Next targeted faction: ${this.next_faction.faction}`)
+                ns.print(`Next targeted faction: ${this.next_faction.faction}`)
+                this.current_timeout = this.default_timeout
                 return
             }
         }
@@ -187,7 +198,7 @@ export class FactionManager {
         }
         if (result == this.next_faction.location) {
             if (ns.getPlayer().factions.includes(this.next_faction.faction)) {
-                ns.tprint(`Faction ${this.next_faction.faction} joined! Moving to next faction target.`)
+                ns.print(`Faction ${this.next_faction.faction} joined! Moving to next faction target.`)
                 this.get_next_faction(ns)
             }
         } else {
@@ -225,7 +236,7 @@ export class FactionManager {
                 break;
             }
         }
-        ns.tprint(`Next city faction to join: ${selected_city}`)
+        ns.print(`Next city faction to join: ${selected_city}`)
 
         let city_faction = {
             faction: selected_city,

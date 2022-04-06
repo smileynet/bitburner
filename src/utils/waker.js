@@ -20,21 +20,21 @@ class Waker {
         const target_mem = script_mem * (this.tasks.length + 1)
         await ns.write('reserved.txt', target_mem, "w");
         while (mem_available < target_mem) {
-            ns.tprint(`Waiting for enough memory to launch...`)
+            this.messenger.add_message(`Waker update`, `Waiting for enough memory to launch...`)
             mem_available = ns.getServerMaxRam('home') - ns.getServerUsedRam('home');
             await ns.sleep(5000)
         }
-        ns.tprint(`Launching scripts...`)
+        ns.print(`Launching scripts...`)
     }
 
     async run(ns) {
         for (const task of this.tasks) {
-            ns.tprint(`Handling task ${task.name}`)
+            ns.print(`Handling task ${task.name}`)
             if (this.can_launch(ns, task.name)) {
                 const result = ns.run(`/src/scriptlauncher.js`, 1, task.script)
-                ns.tprint(`Tried to launch script ${task.script}, result: ${result}`)
+                ns.tiprint(`Tried to launch script ${task.script}, result: ${result}`)
             } else {
-                ns.tprint(`${task.name} not run, requirements: ${task.requirements}`)
+                ns.print(`${task.name} not run, requirements: ${task.requirements}`)
             }
         }
         this.finished = true
@@ -59,7 +59,7 @@ class Waker {
                     return false
                 }
             default:
-                ns.tprint(`Unrecognized sleeper task: ${task}`)
+                ns.print(`Unrecognized sleeper task: ${task}`)
                 return false;
         }
     }
@@ -77,6 +77,6 @@ export async function main(ns) {
         await ns.sleep(1000);
     }
     const result = ns.run(`/src/scriptlauncher.js`, 1, '/utils/sleeper.js')
-    ns.tprint(`All eligible tasks run, launching sleeper: ${result}`)
+    ns.print(`All eligible tasks run, launching sleeper: ${result}`)
 
 }

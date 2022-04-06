@@ -83,8 +83,9 @@ export class PurchaseManager {
 
     max_affordable_ram(ns) {
         let test_ram_amount = this.min_server_ram;
+        let affordable_ram_amount = test_ram_amount;
         while (ns.getPurchasedServerCost(test_ram_amount) < this.funds_avail(ns, 'purchased_server')) {
-            var affordable_ram_amount = test_ram_amount;
+            affordable_ram_amount = test_ram_amount;
             if (test_ram_amount >= this.initial_step_end) {
                 test_ram_amount *= 2
             } else {
