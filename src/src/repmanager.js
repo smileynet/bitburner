@@ -20,6 +20,7 @@ export class RepManager {
         ns.stopAction();
         this.load_goals(ns)
         this.prioritize_goals(ns)
+        this.refresh_faction_rep(ns)
         if (this.buy_augs_on_exit) ns.tprint(`WARN: This script will buy augs when completed, likely trigging a reset`)
     }
 
@@ -98,9 +99,25 @@ export class RepManager {
             case 'The Black Hand':
                 goal.priority = 4
                 break;
+            case 'Daedalus':
+                goal.priority = 12
+                break;
+            case 'Illuminati':
+                goal.priority = 9
+                break;
             default:
                 goal.priority = 1
         }
+    }
+
+    refresh_faction_rep(ns) {
+        ns.print('Current goals:')
+        for (const goal of this.goals) {
+            const current_rep = this.get_current_rep(ns, goal.faction)
+            goal.rep_needed = goal.rep - current_rep
+            ns.print(`${goal.faction} rep needed: ${Utils.pretty_num(goal.rep_needed)}`)
+        }
+        this.goals.sort((a, b) => a.rep_needed - b.rep_needed)
     }
 
     handle_goals(ns) {
@@ -111,6 +128,7 @@ export class RepManager {
             ns.stopAction();
             ns.tprint(`Goal completed: ${this.status}`);
             if (this.goals.length > 0) {
+                this.refresh_faction_rep(ns)
                 this.current_goal = this.goals.shift();
                 current_rep = ns.getFactionRep(this.current_goal.faction)
                 this.status = `${this.current_goal.faction} rep: ${Utils.pretty_num(current_rep)} goal: ${Utils.pretty_num(this.current_goal.rep)}`
@@ -127,9 +145,9 @@ export class RepManager {
         }
     }
 
-    get_current_rep(ns) {
+    get_current_rep(ns, faction = this.current_goal.faction) {
         const player = ns.getPlayer();
-        let current_rep = ns.getFactionRep(this.current_goal.faction) + player.workRepGained;
+        let current_rep = ns.getFactionRep(faction) + player.workRepGained;
         return current_rep;
     }
 
