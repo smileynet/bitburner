@@ -32,7 +32,7 @@ class Waker {
             ns.print(`Handling task ${task.name}`)
             if (this.can_launch(ns, task.name)) {
                 const result = ns.run(`/src/scriptlauncher.js`, 1, task.script)
-                ns.tiprint(`Tried to launch script ${task.script}, result: ${result}`)
+                ns.tprint(`Tried to launch script ${task.script}, result: ${result}`)
             } else {
                 ns.print(`${task.name} not run, requirements: ${task.requirements}`)
             }

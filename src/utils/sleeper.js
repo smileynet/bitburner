@@ -8,6 +8,6 @@ export async function main(ns) {
             await ns.sleep(60000)
         }
     }
-    ns.tprint(`Calling waker!`)
+    ns.tprint(`Calling waker!\n\n`)
     ns.run(`/src/scriptlauncher.js`, 1, '/utils/waker.js')
 }

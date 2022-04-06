@@ -203,7 +203,7 @@ export class CorpManager {
 
 class CorpHelper {
     static get_industries() {
-        return ['Software', 'Agriculture', 'Food', 'Tobacco', 'Chemical', 'Fishing', 'Utilities', 'Pharmaceutical', 'Energy']
+        return ['Software', 'Agriculture', 'Food', 'Tobacco', 'Chemical', 'Fishing', 'Utilities', 'Pharmaceutical', 'Energy', 'Computer', 'Healthcare', 'Mining', 'RealEstate', 'Robotics']
     }
 
     static get_industry_data(industry, type) {

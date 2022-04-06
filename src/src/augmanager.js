@@ -55,11 +55,11 @@ export class AugManager {
         }
         let filename = 'faction_goals.txt'
         await ns.write(filename, JSON.stringify(goals), 'w');
-        ns.tprint(`Goals written to ${filename} with ${goals.length} goals totaling ${all_augs.length} augs.`)
+        ns.print(`Goals written to ${filename} with ${goals.length} goals totaling ${all_augs.length} augs.`)
         const affordable_augs = AugHelper.get_affordable_augs(ns).length
         filename = 'affordable_augs.txt'
         await ns.write(filename, affordable_augs, 'w');
-        ns.tprint(`Current number of affordable augs: ${affordable_augs}. Written to ${filename}`)
+        ns.print(`Current number of affordable augs: ${affordable_augs}. Written to ${filename}`)
         const purchased_augs = ns.getOwnedAugmentations(true).length - ns.getOwnedAugmentations(false).length
         if (affordable_augs >= this.min_augs_to_buy - purchased_augs) {
             this.finished = false;
