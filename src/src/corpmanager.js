@@ -164,7 +164,7 @@ export class CorpManager {
         const cost = this.corp_api.getUpgradeLevelCost(upgrade.name)
         if (cost < CorpHelper.current_money(ns)) {
             this.corp_api.levelUpgrade(upgrade.name)
-            ns.tprint(`${upgrade.name} upgraded to level ${current_level+1}`)
+            ns.tprint(`${upgrade.name} upgraded to level ${upgrade.level+1}`)
         } else {
             const message = `  ${upgrade.name} cost: ${cost}\n`
             this.messenger.add_message('CorpManager Next Corp Upgrade', message)
@@ -217,6 +217,11 @@ class CorpHelper {
             Utilities: { name: 'Poopiez', materials_consumed: ['Hardware', 'Metal'], materials_produced: ['Water'], preferred_material: `Robots`, makes_products: false, priority: 4 },
             Pharmaceutical: { name: 'Drugz', materials_consumed: ['Chemicals', 'Water', 'Energy'], materials_produced: ['Drugs'], preferred_material: `Robots`, makes_products: true, priority: 3 },
             Energy: { name: 'Wattz', materials_consumed: ['Hardware', 'Metal'], materials_produced: ['Energy'], preferred_material: `Real Estate`, makes_products: false, priority: 2 },
+            Computer: { name: '', materials_consumed: [''], materials_produced: [''], preferred_material: ``, makes_products: false, priority: 1 },
+            Healthcare: { name: '', materials_consumed: [''], materials_produced: [''], preferred_material: ``, makes_products: false, priority: 1 },
+            Mining: { name: '', materials_consumed: [''], materials_produced: [''], preferred_material: ``, makes_products: false, priority: 1 },
+            RealEstate: { name: '', materials_consumed: [''], materials_produced: [''], preferred_material: ``, makes_products: false, priority: 1 },
+            Robotics: { name: '', materials_consumed: [''], materials_produced: [''], preferred_material: ``, makes_products: false, priority: 1 },
         }
 
         return industries[industry][type];
@@ -300,6 +305,9 @@ class DivisionManager {
         return this.corp_api.getCorporation()
     }
 
+    get division_object() {
+        return this.corp.divisions.find(division => division.name == this.name)
+    }
     get research_amount() {
         return this.corp_api.getDivision(this.name).research
     }
@@ -338,7 +346,10 @@ class DivisionManager {
     }
 
     status_update(ns) {
-        let message = `  Current number of products: ${this.products.length}`
+        const profit = this.division_object.lastCycleRevenue - this.division_object.lastCycleExpenses
+        const profit_mult = this.division_object.lastCycleRevenue / this.division_object.lastCycleExpenses
+        let message = `  Division Profit: ${Utils.pretty_num(profit)}  Mult: ${Utils.pretty_num(profit_mult)}`
+        message += `  Current number of products: ${this.products.length}`
         message += `   Highest version: ${this.get_highest_product_version()}`
         message += `   Under development: ${this.product_under_development()}\n`
         if (!this.completed) {
@@ -449,16 +460,15 @@ class DivisionManager {
     check_initial_product_completion(ns) {
         if (this.initial_products_completed) return
         if (!this.makes_products) this.initial_products_completed = true;
-        if (!this.product_under_development() &&
-            this.products.length >= this.max_products) {
+        if (this.products.length >= this.max_products) {
             this.initial_products_completed = true
         }
     }
 
     create_products(ns) {
         if (!this.makes_products) return
-        if (!this.product_under_development() &&
-            this.products.length < this.max_products) {
+            // if (this.product_under_development()) return
+        if (this.products.length < this.max_products) {
             let current_version = this.get_highest_product_version();
             const new_version = current_version + 1
             const new_product_cost = this.base_product_investment * 2 * new_version
@@ -591,6 +601,7 @@ class CityManager {
     init(ns) {
         this.check_office_completion(ns)
         this.check_warehouse_completion(ns)
+        this.enable_smart_supply();
     }
 
     run(ns) {
@@ -703,10 +714,10 @@ class CityManager {
 
     handle_materials(ns) {
         if (this.corp.state != 'START') return;
-        this.buy_preferred_material();
-        this.sell_preferred_material();
-        this.handle_consumed_materials();
+        this.handle_consumed_materials(ns);
         this.handle_produced_materials(ns);
+        this.buy_preferred_material(ns);
+        this.sell_preferred_material(ns);
     }
 
     handle_produced_materials(ns) {
@@ -726,30 +737,30 @@ class CityManager {
         }
     }
 
-    handle_consumed_materials() {
+    handle_consumed_materials(ns) {
         for (const consumed_material of this.consumed_materials) {
             if (this.fraud) {
+                this.disable_smart_supply();
                 this.buy_material(consumed_material, 0);
                 this.sell_material(consumed_material, 'MAX', 1);
+                this.not_fraud = false
             } else {
+                if (this.not_fraud) return
+                this.enable_smart_supply();
                 this.sell_material(consumed_material, 0, 0);
-                //TODO: Handle buying this without smart supply?
+                this.not_fraud = true;
             }
         }
     }
 
-    sell_preferred_material() {
-        if (this.fraud) {
-            this.disable_smart_supply();
-            this.sell_material(this.preferred_material, 0, 0);
-        } else if (this.warehouse_utilization > 0.9) {
+    sell_preferred_material(ns) {
+        if (this.warehouse_utilization > 0.9) {
             if (this.selling_preferred) return
-            this.enable_smart_supply();
-            this.sell_material(this.preferred_material, 100, 'MP');
+            this.sell_material(this.preferred_material, 100, 1);
             this.messenger.add_message(`${this.division_name} ${this.name} selling ${this.preferred_material}`,
                 this.get_warehouse_utilization_string());
             this.selling_preferred = true
-        } else {
+        } else if (this.warehouse_utilization < this.opts.target_warehouse_utilization * 1.1) {
             if (!this.selling_preferred) return
             this.sell_material(this.preferred_material, 0, 0);
             this.messenger.add_message(`${this.division_name} ${this.name} no longer selling ${this.preferred_material}`,
@@ -758,7 +769,7 @@ class CityManager {
         }
     }
 
-    buy_preferred_material() {
+    buy_preferred_material(ns) {
         if (this.warehouse_utilization < this.opts.target_warehouse_utilization) {
             if (this.buying_preferred) return;
             this.messenger.add_message(`${this.division_name} ${this.name} buying ${this.preferred_material}`,
