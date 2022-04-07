@@ -41,7 +41,10 @@ export class PurchaseManager {
             home_ram: { ratio: 1 }
         }
 
-        const ratio = Math.min(items[type].ratio, 1) // Ratio should not exceed 1
+        let ratio = Math.min(items[type].ratio, 1)
+        if (type == "purchased_server" && this.current_servers(ns) < this.max_servers) {
+            ratio = 1
+        }
         const current_money = ns.getServerMoneyAvailable("home");
         return current_money * ratio;
     }
