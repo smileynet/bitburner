@@ -289,11 +289,15 @@ export class AugHelper {
         return aug_data;
     }
 
-    static city_faction_has_unpurchased_augs(ns, faction) {
+    static city_faction_has_unpurchased_augs(ns, faction, max = 2) {
         var faction_augs = AugHelper.get_unowned_faction_aug_data(ns, faction);
-        if (faction == "Aevum" && faction_augs.length > 3) {
-            return true;
-        } else if (faction_augs.length > 2) {
+        if (faction == "Aevum") {
+            if (faction_augs.length > max + 1) {
+                return true;
+            } else {
+                return false;
+            }
+        } else if (faction_augs.length > max) {
             return true;
         } else {
             return false;
