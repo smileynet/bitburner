@@ -229,14 +229,26 @@ export class FactionManager {
     }
 
     handle_city_factions(ns) {
-        let selected_city = 'Aevum'
+        let selected_city = ''
         for (const city of Utils.cities) {
-            if (AugHelper.city_faction_has_unpurchased_augs(ns, city)) {
+            const result = AugHelper.city_faction_has_unpurchased_augs(ns, city)
+            if (result) {
                 selected_city = city
                 break;
             }
         }
-        ns.print(`Next city faction to join: ${selected_city}`)
+        if (selected_city == '') {
+            for (const city of Utils.cities) {
+                const result = AugHelper.city_faction_has_unpurchased_augs(ns, city, 1)
+                if (result) {
+                    selected_city = city
+                    break;
+                }
+            }
+        }
+
+        if (selected_city == '') selected_city = 'Aevum'
+        ns.tprint(`Next city faction to join: ${selected_city}`)
 
         let city_faction = {
             faction: selected_city,
