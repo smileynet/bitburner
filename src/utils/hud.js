@@ -58,11 +58,11 @@ export async function main(ns) {
                 headers.push("Rep");
                 values.push("----------");
                 const rep_obj = JSON.parse(ns.read('/data/rep_goal.txt', 'home'))
-                headers.push("Rep Goal:");
+                headers.push("Goal:");
                 values.push(`${Utils.pretty_num(rep_obj.goal)}`);
-                headers.push("Current Rep:");
+                headers.push("Needed:");
                 values.push(`${Utils.pretty_num(rep_obj.needed)}`);
-                headers.push("Est Minues:");
+                headers.push("Mins:");
                 values.push(`${Utils.pretty_num(rep_obj.time)}`);
             }
             headers.push("--------");
