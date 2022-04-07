@@ -11,6 +11,7 @@ export class CorpManager {
         this.completed = false;
         this.divisions_completed = false;
         this.corp_upgrades_completed = false;
+        this.current_dividend = 0;
         this.divisions = []
         this.corp_upgrades = [
             { name: "Smart Factories", priority: 10, max: 20, weight: 2 },
@@ -46,6 +47,7 @@ export class CorpManager {
 
     run(ns) {
         this.stock_buyback(ns)
+        this.handle_dividends(ns)
         this.handle_divisions(ns)
         if (!this.corp_upgrades_completed) {
             this.handle_corp_upgrades(ns)
@@ -65,6 +67,18 @@ export class CorpManager {
 
     get corp() {
         return this.corp_api.getCorporation()
+    }
+
+    handle_dividends(ns) {
+        if (ns.fileExists('money.txt')) {
+            this.current_dividend = 1
+        } else if (this.level > 1) {
+            this.current_dividend = 0.5
+
+        } else {
+            this.current_dividend = 0
+        }
+        this.corp_api.issueDividends(this.current_dividend)
     }
 
     uplevel(ns) {
@@ -145,7 +159,7 @@ export class CorpManager {
     }
 
     status_update(ns) {
-        let message = `  Corp level: ${this.level}\n`;
+        let message = `  Corp level: ${this.level}   Current dividend: ${this.current_dividend * 100}%\n`;
         if (this.corp.public) {
             message += `  Current stock price: $${Utils.pretty_num(this.corp.sharePrice,2)} `
             if (this.corp.issuedShares > 0) {
