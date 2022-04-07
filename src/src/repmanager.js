@@ -79,7 +79,7 @@ export class RepManager {
         const faction = goal.faction
         switch (faction) {
             case 'CyberSec':
-                goal.priority = 11
+                goal.priority = 12
                 break;
             case 'Sector-12':
                 goal.priority = 10
@@ -94,16 +94,16 @@ export class RepManager {
                 goal.priority = 7
                 break;
             case 'NiteSec':
-                goal.priority = 5
+                goal.priority = 11
                 break;
             case 'The Black Hand':
                 goal.priority = 4
                 break;
             case 'Daedalus':
-                goal.priority = 12
+                goal.priority = 15
                 break;
             case 'Illuminati':
-                goal.priority = 9
+                goal.priority = 14
                 break;
             default:
                 goal.priority = 1
