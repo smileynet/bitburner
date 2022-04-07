@@ -329,6 +329,7 @@ class DivisionManager {
         this.expansion_completed = false;
         this.initial_products_completed = false;
         this.fraud = false;
+        this.is_upleveled = false;
         this.makes_products = CorpHelper.makes_products(this.type)
         this.produced_materials = CorpHelper.materials_produced(this.type);
     }
@@ -360,6 +361,7 @@ class DivisionManager {
     get division_object() {
         return this.corp.divisions.find(division => division.name == this.name)
     }
+
     get research_amount() {
         return this.corp_api.getDivision(this.name).research
     }
@@ -408,6 +410,7 @@ class DivisionManager {
         this.advert_completed = false;
         this.expansion_completed = false;
         this.initial_products_completed = false;
+        this.is_upleveled = true
         for (const city of this.cities) {
             city.uplevel(ns);
         }
@@ -534,14 +537,25 @@ class DivisionManager {
         if (!this.makes_products) return
             // if (this.product_under_development()) return
         if (this.products.length < this.max_products) {
-            let current_version = this.get_highest_product_version();
-            const new_version = current_version + 1
-            const new_product_cost = this.base_product_investment * 2 * new_version
-            if (new_product_cost <= CorpHelper.current_money(ns)) {
-                const product_name = `${this.name}-v${new_version}`
-                this.corp_api.makeProduct(this.name, 'Sector-12', `${product_name}`, this.base_product_investment, this.base_product_investment)
-                ns.tprint(`Beginning development of ${product_name}`)
+            this.create_new_product(ns)
+        } else if (this.is_upleveled && !this.product_under_development()) {
+            this.create_new_product(ns, true)
+        }
+    }
+
+    create_new_product(ns, replace = false) {
+        let current_version = this.get_highest_product_version();
+        const new_version = current_version + 1
+        const new_product_cost = this.base_product_investment * 2 * new_version
+        if (new_product_cost <= CorpHelper.current_money(ns)) {
+            if (replace) {
+                let old_product_name = this.get_lowest_product_name()
+                ns.tprint(`Removing ${old_product_name} to create version ${new_version}`)
+                this.corp_api.discontinueProduct(this.name, old_product_name)
             }
+            const product_name = `${this.name}-v${new_version}`
+            this.corp_api.makeProduct(this.name, 'Sector-12', `${product_name}`, this.base_product_investment, this.base_product_investment)
+            ns.tprint(`Beginning development of ${product_name}`)
         }
     }
 
@@ -553,6 +567,21 @@ class DivisionManager {
             }
         }
         return false
+    }
+
+    get_lowest_product_name() {
+        let current_version = this.get_highest_product_version()
+        let lowest_product_name
+        for (const product_name of this.products) {
+            const tens_char = parseInt(product_name.charAt(product_name.length - 2));
+            const ones_char = parseInt(product_name.charAt(product_name.length - 1));
+            const tens = tens_char > 0 ? tens_char * 10 : 0;
+            const ones = ones_char > 0 ? ones_char : 0;
+            const version = tens + ones;
+            current_version = Math.min(version, current_version)
+            if (current_version == version) lowest_product_name = product_name
+        }
+        return lowest_product_name;
     }
 
     get_highest_product_version() {
