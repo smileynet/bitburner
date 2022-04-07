@@ -83,7 +83,7 @@ export class PlayerManager {
                 break;
             case 'bladeburner':
                 goal_is_finished = () => ns.getPlayer().inBladeburner
-                if (!goal_is_finished) {
+                if (!goal_is_finished()) {
                     this.train_combat_stats(ns, goal.priority, this.bladeburner_min_stats);
                     this.add_task(ns, new PlayerTask(this.messenger, goal.priority - 10, 'init_group', 100, 'bladeburner', goal_is_finished))
                 } else {
@@ -276,7 +276,10 @@ export class PlayerHelper {
 
 /** @param {NS} ns **/
 export async function main(ns) {
-    let messenger = new Messenger();
+    ns.disableLog("ALL");
+    const verbose = true
+    const messenger = new Messenger(verbose);
+    messenger.init(ns);
     const playerManager = new PlayerManager(messenger)
     await playerManager.init(ns);
     while (!playerManager.finished) {
