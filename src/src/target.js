@@ -8,7 +8,7 @@ export class Target {
         this.tgt_security = this.min_security + security_buffer;
         this.growth = ns.getServerGrowth(server_name);
         this.growth_money_mult = this.max_money * this.growth;
-        if (this.name == 'joesguns') this.growth_money_mult = 1
+        if (this.name == 'joesguns') this.growth_money_mult = 2
             // TODO: Validate target
     }
 
