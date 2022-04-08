@@ -219,6 +219,7 @@ export class CorpManager {
 
     handle_corp_upgrades(ns) {
         const upgrade = this.get_next_corp_upgrade(ns)
+        if (!upgrade) return
         const current_upgrade_max = this.divisions.length - 1
         if (upgrade.weighted_level > current_upgrade_max && !this.divisions_completed) return
         const cost = this.corp_api.getUpgradeLevelCost(upgrade.name)
@@ -234,7 +235,7 @@ export class CorpManager {
     get_next_corp_upgrade(ns) {
         let upgrades = this.corp_upgrades
         upgrades = upgrades.sort((a, b) => b.priority - a.priority)
-        for (let i = 1; i < 20; i++) {
+        for (let i = 1; i < 1000; i++) {
             for (let upgrade of upgrades) {
                 upgrade.level = this.corp_api.getUpgradeLevel(upgrade.name)
                 upgrade.weighted_level = upgrade.level / upgrade.weight
@@ -243,6 +244,7 @@ export class CorpManager {
                 }
             }
         }
+        return false
         ns.tprint(`ERROR: Unexpected end when trying to find next corp upgrade.`)
     }
 }
@@ -254,20 +256,20 @@ class CorpHelper {
 
     static get_industry_data(industry, type) {
         const industries = {
-            Software: { name: 'Warez', warehouse: 0.9, material_amount: 500, materials_consumed: ['Hardware', 'Energy'], materials_produced: ['AI Cores'], preferred_material: `Hardware`, makes_products: true, priority: 14 },
-            Agriculture: { name: 'Cowz', warehouse: 0.75, material_amount: 5000, materials_consumed: ['Water', 'Energy'], materials_produced: ['Food', 'Plants'], preferred_material: `Real Estate`, makes_products: false, priority: 15 },
-            Food: { name: 'Burritoz', warehouse: 0.8, material_amount: 100, materials_consumed: ['Food', 'Water', 'Energy'], materials_produced: [], preferred_material: `AI Cores`, makes_products: true, priority: 12 },
-            Tobacco: { name: 'Smokez', warehouse: 0.9, material_amount: 50, materials_consumed: ['Plants', 'Water'], materials_produced: [], preferred_material: `Robots`, makes_products: true, priority: 13 },
-            Chemical: { name: 'Chemz', warehouse: 0.9, material_amount: 50, materials_consumed: ['Plants', 'Water', 'Energy'], materials_produced: ['Chemicals'], preferred_material: `Robots`, makes_products: false, priority: 11 },
-            Fishing: { name: 'Sushiz', warehouse: 0.9, material_amount: 50, materials_consumed: ['Energy'], materials_produced: ['Food'], preferred_material: `Robots`, makes_products: false, priority: 10 },
-            Utilities: { name: 'Poopiez', warehouse: 0.9, material_amount: 50, materials_consumed: ['Hardware', 'Metal'], materials_produced: ['Water'], preferred_material: `Robots`, makes_products: false, priority: 9 },
-            Pharmaceutical: { name: 'Drugz', warehouse: 0.9, material_amount: 50, materials_consumed: ['Chemicals', 'Water', 'Energy'], materials_produced: ['Drugs'], preferred_material: `Robots`, makes_products: true, priority: 8 },
-            Energy: { name: 'Wattz', warehouse: 0.9, material_amount: 5000, materials_consumed: ['Hardware', 'Metal'], materials_produced: ['Energy'], preferred_material: `Real Estate`, makes_products: false, priority: 7 },
-            Computer: { name: 'Compyz', warehouse: 0.8, material_amount: 50, materials_consumed: ['Metal', 'Energy'], materials_produced: ['Hardware'], preferred_material: `Robots`, makes_products: true, priority: 5 },
-            Healthcare: { name: 'Hospitalz', warehouse: 0.8, material_amount: 500, materials_consumed: ['Robots', 'AI Cores', 'Energy', 'Water'], materials_produced: [], preferred_material: `Hardware`, makes_products: true, priority: 4 },
-            Mining: { name: 'Coinz', warehouse: 0.9, material_amount: 100, materials_consumed: ['Energy'], materials_produced: ['Metal'], preferred_material: `AI Cores`, makes_products: false, priority: 6 },
-            RealEstate: { name: 'Mansionz', warehouse: 0.8, material_amount: 50, materials_consumed: ['Metal', 'Energy', 'Water', 'Hardware'], materials_produced: ['Real Estate'], preferred_material: `AI Cores`, makes_products: true, priority: 5 },
-            Robotics: { name: 'Botz', warehouse: 0.8, material_amount: 100, materials_consumed: ['Hardware', 'Energy'], materials_produced: ['Robots'], preferred_material: `AI Cores`, makes_products: true, priority: 3 },
+            Software: { name: 'Warez', warehouse: 0.9, material_amount: 500, materials_consumed: ['Hardware', 'Energy'], materials_produced: ['AI Cores'], preferred_material: `Hardware`, makes_products: true, priority: 11 },
+            Agriculture: { name: 'Cowz', warehouse: 0.75, material_amount: 5000, materials_consumed: ['Water', 'Energy'], materials_produced: ['Food', 'Plants'], preferred_material: `Real Estate`, makes_products: false, priority: 20 },
+            Food: { name: 'Burritoz', warehouse: 0.8, material_amount: 100, materials_consumed: ['Food', 'Water', 'Energy'], materials_produced: [], preferred_material: `AI Cores`, makes_products: true, priority: 8 },
+            Tobacco: { name: 'Smokez', warehouse: 0.9, material_amount: 50, materials_consumed: ['Plants', 'Water'], materials_produced: [], preferred_material: `Robots`, makes_products: true, priority: 12 },
+            Chemical: { name: 'Chemz', warehouse: 0.9, material_amount: 50, materials_consumed: ['Plants', 'Water', 'Energy'], materials_produced: ['Chemicals'], preferred_material: `Robots`, makes_products: false, priority: 19 },
+            Fishing: { name: 'Sushiz', warehouse: 0.9, material_amount: 50, materials_consumed: ['Energy'], materials_produced: ['Food'], preferred_material: `Robots`, makes_products: false, priority: 6 },
+            Utilities: { name: 'Poopiez', warehouse: 0.9, material_amount: 50, materials_consumed: ['Hardware', 'Metal'], materials_produced: ['Water'], preferred_material: `Robots`, makes_products: false, priority: 7 },
+            Pharmaceutical: { name: 'Drugz', warehouse: 0.9, material_amount: 50, materials_consumed: ['Chemicals', 'Water', 'Energy'], materials_produced: ['Drugs'], preferred_material: `Robots`, makes_products: true, priority: 15 },
+            Energy: { name: 'Wattz', warehouse: 0.9, material_amount: 5000, materials_consumed: ['Hardware', 'Metal'], materials_produced: ['Energy'], preferred_material: `Real Estate`, makes_products: false, priority: 18 },
+            Computer: { name: 'Compyz', warehouse: 0.8, material_amount: 50, materials_consumed: ['Metal', 'Energy'], materials_produced: ['Hardware'], preferred_material: `Robots`, makes_products: true, priority: 9 },
+            Healthcare: { name: 'Hospitalz', warehouse: 0.8, material_amount: 500, materials_consumed: ['Robots', 'AI Cores', 'Energy', 'Water'], materials_produced: [], preferred_material: `Hardware`, makes_products: true, priority: 14 },
+            Mining: { name: 'Coinz', warehouse: 0.9, material_amount: 100, materials_consumed: ['Energy'], materials_produced: ['Metal'], preferred_material: `AI Cores`, makes_products: false, priority: 5 },
+            RealEstate: { name: 'Mansionz', warehouse: 0.8, material_amount: 50, materials_consumed: ['Metal', 'Energy', 'Water', 'Hardware'], materials_produced: ['Real Estate'], preferred_material: `AI Cores`, makes_products: true, priority: 17 },
+            Robotics: { name: 'Botz', warehouse: 0.8, material_amount: 100, materials_consumed: ['Hardware', 'Energy'], materials_produced: ['Robots'], preferred_material: `AI Cores`, makes_products: true, priority: 16 },
         }
 
         return industries[industry][type];
@@ -401,6 +403,7 @@ class DivisionManager {
 
     uplevel(ns) {
         this.advert_max *= 2;
+        this.base_product_investment *= 10
         ns.print(`${this.name} new advert max: ${this.advert_max}`)
         this.opts.target_warehouse_level *= 2
         this.opts.max_office_size *= 2
