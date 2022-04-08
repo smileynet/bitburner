@@ -8,8 +8,14 @@ export class Target {
         this.tgt_security = this.min_security + security_buffer;
         this.growth = ns.getServerGrowth(server_name);
         this.growth_money_mult = this.max_money * this.growth;
-        if (this.name == 'joesguns') this.growth_money_mult = 2
-            // TODO: Validate target
+        if (this.name == 'joesguns') {
+            if (ns.fileExists('exp.txt', 'home')) {
+                this.growth_money_mult = 1000000000000000000
+            } else {
+                this.growth_money_mult = 2
+            }
+        }
+        // TODO: Validate target
     }
 
     get current_security() {

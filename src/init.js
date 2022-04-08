@@ -19,6 +19,7 @@ class Init {
     async init(ns) {
         ns.tprint(`Initializing files...`)
         ns.rm('money.txt', 'home');
+        ns.rm('exp.txt', 'home');
         ns.rm('faction_goals.txt', 'home');
         ns.rm('affordable_augs.txt', 'home');
         ns.rm('/data/rep_goal.txt', 'home');
