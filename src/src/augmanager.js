@@ -11,6 +11,7 @@ export class AugManager {
         this.max_rep = this.max_rep_default
         this.min_augs_for_goals = this.min_augs_to_buy
         this.finished = false;
+        this.rep_grind = false;
         this.start_with_affordable = cheap
     }
 
@@ -25,7 +26,7 @@ export class AugManager {
     async run(ns) {
         if (this.check) {
             this.finished = true;
-            //AugDisplayer.by_price(ns, AugHelper.get_affordable_augs(ns))
+            AugDisplayer.by_price(ns, AugHelper.get_affordable_augs(ns))
             await this.set_faction_goals(ns)
         } else {
             await ns.write('money.txt', 'true', 'w');
@@ -36,7 +37,7 @@ export class AugManager {
     async finish(ns) {
         if (!this.check) {
             const num_augs = ns.getOwnedAugmentations(true).length - ns.getOwnedAugmentations(false).length
-            if (num_augs >= 5) {
+            if (num_augs >= 5 && ns.getServerMoneyAvailable('home') < 1000000000000) {
                 await ns.write('last_reboot.txt', new Date().toLocaleString() + '\n', 'a')
                 ns.installAugmentations('init.js')
             } else {
@@ -67,7 +68,7 @@ export class AugManager {
             this.start_with_affordable = true;
         } else if (all_augs.length >= this.min_augs_to_buy) {
             const reputation_script = '/src/repmanager.js'
-            if (!ns.isRunning(reputation_script, 'home')) {
+            if (this.rep_grind && !ns.isRunning(reputation_script, 'home')) {
                 const result = ns.run(`/src/scriptlauncher.js`, 1, reputation_script)
                 ns.tprint(`Tried to launch script ${reputation_script}, result: ${result}`)
             }
@@ -291,13 +292,7 @@ export class AugHelper {
 
     static city_faction_has_unpurchased_augs(ns, faction, max = 2) {
         var faction_augs = AugHelper.get_unowned_faction_aug_data(ns, faction);
-        if (faction == "Aevum") {
-            if (faction_augs.length > max + 1) {
-                return true;
-            } else {
-                return false;
-            }
-        } else if (faction_augs.length > max) {
+        if (faction_augs.length > max) {
             return true;
         } else {
             return false;

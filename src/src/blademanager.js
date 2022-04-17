@@ -5,10 +5,10 @@ export class BladeManager {
     constructor(ns, messenger, interval = 60) {
         this.messenger = messenger;
         this.recovering = false;
-        this.min_success_chance = 0.75;
-        this.max_chaos = 50;
-        this.max_intel_spread = 0.3;
-        this.rank_target = 5000
+        this.min_success_chance = 0.7;
+        this.max_chaos = 100;
+        this.max_intel_spread = 0.4;
+        this.rank_target = this.set_rank_target(ns)
         this.finished = false
         this.refresh_interval = interval;
         this.current_interval = interval;
@@ -31,6 +31,18 @@ export class BladeManager {
     run(ns) {
         this.upgrade_skills(ns);
         this.refresh_action(ns);
+    }
+
+    set_rank_target(ns) {
+        let rank_target
+        if (ns.getPlayer().bitNodeN == (6 | 7)) {
+            rank_target = 500000
+            ns.print(`In Bladeburner node, setting rank target to ${rank_target}`)
+        } else {
+            rank_target = 20000
+            ns.print(`Not in Bladeburner node, setting rank target to ${rank_target}`)
+        }
+        return rank_target
     }
 
     priority(ns) {

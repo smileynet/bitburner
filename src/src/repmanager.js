@@ -5,13 +5,13 @@ export class RepManager {
     constructor(messenger, buy_augs_on_exit = false) {
         this.messenger = messenger;
         this.finished = false;
-        this.faction_favor_to_buy = 150;
         this.default_focus = false;
         this.buy_augs_on_exit = buy_augs_on_exit
         this.min_balance_for_donation = 1000000000
     }
 
     async init(ns) {
+        this.faction_favor_to_buy = ns.getFavorToDonate();
         ns.kill('/utils/boost.js', 'home')
         ns.run('/utils/boost.js');
         if (ns.isRunning('/src/blademanager.js', 'home') && !ns.fileExists('simulacrum.txt', 'home')) {

@@ -17,7 +17,7 @@ export class CorpManager {
             { name: "Smart Factories", priority: 10, max: 20, weight: 2 },
             { name: "Smart Storage", priority: 9, max: 20, weight: 1 },
             { name: "DreamSense", priority: 1, max: 10, weight: 1 },
-            { name: "Wilson Analytics", priority: 1, max: 10, weight: 1 },
+            { name: "Wilson Analytics", priority: 1, max: 5, weight: 0.25 },
             { name: "Nuoptimal Nootropic Injector Implants", priority: 17, max: 20, weight: 2 },
             { name: "Speech Processor Implants", priority: 18, max: 20, weight: 2 },
             { name: "Neural Accelerators", priority: 19, max: 20, weight: 2 },
@@ -264,12 +264,12 @@ class CorpHelper {
             Fishing: { name: 'Sushiz', warehouse: 0.9, material_amount: 50, materials_consumed: ['Energy'], materials_produced: ['Food'], preferred_material: `Robots`, makes_products: false, priority: 6 },
             Utilities: { name: 'Poopiez', warehouse: 0.9, material_amount: 50, materials_consumed: ['Hardware', 'Metal'], materials_produced: ['Water'], preferred_material: `Robots`, makes_products: false, priority: 7 },
             Pharmaceutical: { name: 'Drugz', warehouse: 0.9, material_amount: 50, materials_consumed: ['Chemicals', 'Water', 'Energy'], materials_produced: ['Drugs'], preferred_material: `Robots`, makes_products: true, priority: 15 },
-            Energy: { name: 'Wattz', warehouse: 0.9, material_amount: 5000, materials_consumed: ['Hardware', 'Metal'], materials_produced: ['Energy'], preferred_material: `Real Estate`, makes_products: false, priority: 18 },
+            Energy: { name: 'Wattz', warehouse: 0.8, material_amount: 5000, materials_consumed: ['Hardware', 'Metal'], materials_produced: ['Energy'], preferred_material: `Real Estate`, makes_products: false, priority: 18 },
             Computer: { name: 'Compyz', warehouse: 0.8, material_amount: 50, materials_consumed: ['Metal', 'Energy'], materials_produced: ['Hardware'], preferred_material: `Robots`, makes_products: true, priority: 9 },
-            Healthcare: { name: 'Hospitalz', warehouse: 0.8, material_amount: 500, materials_consumed: ['Robots', 'AI Cores', 'Energy', 'Water'], materials_produced: [], preferred_material: `Hardware`, makes_products: true, priority: 14 },
+            Healthcare: { name: 'Hospitalz', warehouse: 0.7, material_amount: 500, materials_consumed: ['Robots', 'AI Cores', 'Energy', 'Water'], materials_produced: [], preferred_material: `Hardware`, makes_products: true, priority: 14 },
             Mining: { name: 'Coinz', warehouse: 0.9, material_amount: 100, materials_consumed: ['Energy'], materials_produced: ['Metal'], preferred_material: `AI Cores`, makes_products: false, priority: 5 },
-            RealEstate: { name: 'Mansionz', warehouse: 0.8, material_amount: 50, materials_consumed: ['Metal', 'Energy', 'Water', 'Hardware'], materials_produced: ['Real Estate'], preferred_material: `AI Cores`, makes_products: true, priority: 17 },
-            Robotics: { name: 'Botz', warehouse: 0.8, material_amount: 100, materials_consumed: ['Hardware', 'Energy'], materials_produced: ['Robots'], preferred_material: `AI Cores`, makes_products: true, priority: 16 },
+            RealEstate: { name: 'Mansionz', warehouse: 0.65, material_amount: 50, materials_consumed: ['Metal', 'Energy', 'Water', 'Hardware'], materials_produced: ['Real Estate'], preferred_material: `AI Cores`, makes_products: true, priority: 17 },
+            Robotics: { name: 'Botz', warehouse: 0.7, material_amount: 100, materials_consumed: ['Hardware', 'Energy'], materials_produced: ['Robots'], preferred_material: `AI Cores`, makes_products: true, priority: 16 },
         }
 
         return industries[industry][type];
@@ -702,6 +702,7 @@ class CityManager {
         this.check_warehouse_completion(ns)
         this.enable_smart_supply();
         this.init_preferred_materials(ns)
+        this.init_consumed_materials(ns)
     }
 
     run(ns) {
@@ -746,13 +747,16 @@ class CityManager {
 
     uplevel(ns) {
         ns.print(`${this.division_name} ${this.name} new warehouse target: ${this.opts.target_warehouse_level}`)
-        ns.print(`${this.division_name} ${this.name}  new office target: ${this.opts.max_office_size}`)
+        ns.print(`${this.division_name} ${this.name} new office target: ${this.opts.max_office_size}`)
         this.completed = false;
         this.office_completed = false
         this.warehouse_completed = false;
     }
 
     status_update(ns) {
+        if (this.warehouse_utilization > 0.98) {
+            this.messenger.append_message(`WARN: ${this.division_name} ${this.name}`, `  At max warehouse capacity!`)
+        }
         // Leaving this in place for future functionality, currently this is rolled up by the division implementation of this function.
         //this.messenger.add_message(`${this.division_name} ${this.name} upgrade completion`,
         //    `  Warehouse: ${this.warehouse_completed}   Office: ${this.office_completed}`);
@@ -849,6 +853,14 @@ class CityManager {
         this.buy_material(this.preferred_material, 0);
     }
 
+    init_consumed_materials(ns) {
+        for (const consumed_material of this.consumed_materials) {
+            this.enable_smart_supply();
+            this.buy_material(consumed_material, 0);
+            this.sell_material(consumed_material, 0, 0);
+        }
+    }
+
     handle_consumed_materials(ns) {
         for (const consumed_material of this.consumed_materials) {
             if (this.fraud) {
@@ -868,7 +880,7 @@ class CityManager {
     sell_preferred_material(ns) {
         if (this.warehouse_utilization > Math.min(this.target_warehouse_utilization + 0.06, 0.95)) {
             if (this.selling_preferred) return
-            this.sell_material(this.preferred_material, this.material_amount * 0.1, 1);
+            this.sell_material(this.preferred_material, this.material_amount * 1, 1);
             this.messenger.add_message(`${this.division_name} ${this.name} selling ${this.preferred_material}`,
                 this.get_warehouse_utilization_string());
             this.selling_preferred = true

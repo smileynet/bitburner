@@ -1,7 +1,7 @@
 import Messenger from '/src/messenger'
 import ScriptLauncher from '/src/scriptlauncher'
 
-class Init {
+class Reset {
     constructor(ns, messenger) {
         this.messenger = messenger
         this.tasks = [
@@ -19,16 +19,10 @@ class Init {
     async init(ns) {
         ns.tprint(`Initializing files...`)
         ns.rm('money.txt', 'home');
-        ns.rm('exp.txt', 'home');
         ns.rm('faction_goals.txt', 'home');
         ns.rm('affordable_augs.txt', 'home');
         ns.rm('/data/rep_goal.txt', 'home');
         await ns.write('reserved.txt', 8, "w");
-        if (ns.getOwnedAugmentations(false).includes("The Blade's Simulacrum")) {
-            await ns.write('simulacrum.txt', true, "w");
-        } else {
-            ns.rm('simulacrum.txt', 'home')
-        }
         this.tasks = this.tasks.filter(task => task.enabled)
         ns.tprint(`Launching scripts...`)
     }
@@ -38,7 +32,7 @@ class Init {
             if (task.pending && !this.is_pending(ns, task)) {
                 task.running = true
             }
-            if (task.running == false && this.can_launch(ns, task) && !this.is_pending(ns, task)) {
+            if (task.running == false && this.can_launch(ns, task.name) && !this.is_pending(ns, task)) {
                 task.pending = true
                 const result = ns.run(`/src/scriptlauncher.js`, 1, task.script)
                 ns.tprint(`Tried to launch script ${task.script}: ${result}`)
@@ -66,7 +60,7 @@ class Init {
     }
 
     can_launch(ns, task) {
-        switch (task.name) {
+        switch (task) {
             case 'hacking':
             case 'player_manager':
             case 'hud':

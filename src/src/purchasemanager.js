@@ -6,7 +6,7 @@ import Scanner from "/src/scanner";
 export class PurchaseManager {
     constructor(ns, messenger, min_server_ram = 16) {
         this.max_servers = ns.getPurchasedServerLimit();
-        this.max_server_ram = ns.getPurchasedServerMaxRam();
+        this.max_server_ram = 1024 // ns.getPurchasedServerMaxRam();
         this.min_server_ram = min_server_ram;
         this.messenger = messenger;
         this.finished = false;
@@ -15,7 +15,7 @@ export class PurchaseManager {
     }
 
     async run(ns) {
-        if (!ns.fileExists('money.txt')) {
+        if (!ns.fileExists('money.txt') || ns.fileExists('exp.txt')) {
             this.purchase_hacking_programs(ns)
             this.purchase_home_upgrades(ns)
             this.purchase_servers(ns);
@@ -44,12 +44,14 @@ export class PurchaseManager {
         let ratio = Math.min(items[type].ratio, 1)
 
         if (type == "purchased_server") {
-            const current_ram = ns.getServerMaxRam(ns.getPurchasedServers()[0])
-            const lots_of_ram = 1024
-            if (this.current_servers(ns) < this.max_servers) {
+            if (this.current_servers(ns) < this.max_servers | ns.fileExists('exp.txt')) {
                 ratio = 1
-            } else if (current_ram >= lots_of_ram) {
-                ratio = 0.1
+            } else {
+                const current_ram = ns.getServerMaxRam(ns.getPurchasedServers()[0])
+                const lots_of_ram = 1024
+                if (current_ram >= lots_of_ram) {
+                    ratio = 0.1
+                }
             }
         }
         const current_money = ns.getServerMoneyAvailable("home");

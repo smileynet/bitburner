@@ -82,7 +82,7 @@ export class PlayerManager {
                 }
                 break;
             case 'bladeburner':
-                goal_is_finished = () => ns.getPlayer().inBladeburner
+                goal_is_finished = () => ns.getPlayer().inBladeburner && ns.getPlayer().strength >= 100
                 if (!goal_is_finished()) {
                     this.train_combat_stats(ns, goal.priority, this.bladeburner_min_stats);
                     this.add_task(ns, new PlayerTask(this.messenger, goal.priority - 10, 'init_group', 100, 'bladeburner', goal_is_finished))

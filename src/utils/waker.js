@@ -14,8 +14,10 @@ class Waker {
     }
 
     async init(ns) {
-        if (ns.isRunning('/src/blademanager.js', 'home') && !ns.fileExists('simulacrum.txt', 'home')) {
-            ns.kill('/src/blademanager.js', 'home')
+        if (ns.getServerMaxRam('home') < 128) {
+            if (ns.isRunning('/src/blademanager.js', 'home') && !ns.fileExists('simulacrum.txt', 'home')) {
+                ns.kill('/src/blademanager.js', 'home')
+            }
         }
         this.tasks = this.tasks.filter(task => task.enabled)
         let mem_available = ns.getServerMaxRam('home') - ns.getServerUsedRam('home');
