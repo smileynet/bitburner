@@ -35,7 +35,7 @@ export class BladeManager {
 
     set_rank_target(ns) {
         let rank_target
-        if (ns.getPlayer().bitNodeN == (6 | 7)) {
+        if ([6, 7].includes(ns.getPlayer().bitNodeN)) {
             rank_target = 500000
             ns.print(`In Bladeburner node, setting rank target to ${rank_target}`)
         } else {
@@ -118,7 +118,7 @@ export class BladeManager {
     get_actions(type) {
         const actions = {
             Contracts: ['Retirement', 'Bounty Hunter', 'Tracking'],
-            Operations: ['Investigation', 'Undercover Operation', 'Sting Operation', 'Raid', 'Stealth Retirement Operation', 'Assassination'],
+            Operations: ['Investigation', 'Undercover Operation', 'Sting Operation', 'Stealth Retirement Operation', 'Assassination'], //'Raid',
             BlackOps: ["Operation Typhoon", "Operation Zero", "Operation X", "Operation Titan", "Operation Ares", "Operation Archangel", "Operation Juggernaut", "Operation Red Dragon", "Operation K", "Operation Deckard", "Operation Tyrell", "Operation Wallace", "Operation Shoulder of Orion", "Operation Hyron", "Operation Morpheus", "Operation Ion Storm", "Operation Annihilus", "Operation Ultron", "Operation Centurion", "Operation Vindictus", "Operation Daedalus"],
             General: ['Training', 'Field Analysis', 'Recruitment', 'Diplomacy', 'Hyperbolic Regeneration Chamber', 'Incite Violence']
         }
@@ -198,6 +198,9 @@ export class BladeManager {
                 const not_completed = ns.bladeburner.getActionCountRemaining(type, action) >= 1
                 if (not_completed) {
                     const estimated_success = ns.bladeburner.getActionEstimatedSuccessChance(type, action)
+                    if (estimated_success[1] - estimated_success[0] > this.max_intel_spread) {
+                        return this.get_best_intel_action(ns)
+                    }
                     const estimated_success_avg = (estimated_success[0] + estimated_success[1]) / 2
                     if (estimated_success_avg >= this.min_success_chance) {
                         const time_needed = ns.bladeburner.getActionTime(type, action)
@@ -238,7 +241,6 @@ export class BladeManager {
     }
 
     get_action_data(ns, action, type, cities = Utils.cities) {
-        const max_intel_spread = this.max_intel_spread;
         let action_data = { name: action, type: type }
         action_data.count = ns.bladeburner.getActionCountRemaining(type, action)
         action_data.current_level = ns.bladeburner.getActionCurrentLevel(type, action)
@@ -251,7 +253,7 @@ export class BladeManager {
         for (const city of cities) {
             ns.bladeburner.switchCity(city);
             const estimated_success = ns.bladeburner.getActionEstimatedSuccessChance(type, action)
-            if (estimated_success[1] - estimated_success[0] > max_intel_spread && !this.is_intel_action(action)) {
+            if (estimated_success[1] - estimated_success[0] > this.max_intel_spread && !this.is_intel_action(action)) {
                 this.messenger.add_message(`BladeMaster insufficient intel`, `  Action: ${action}   City: ${city}` +
                     `   low: ${Math.floor(estimated_success[0] * 100)}   high: ${Math.floor(estimated_success[1] * 100)}`)
                 this.next_city = city;
@@ -276,7 +278,7 @@ export class BladeManager {
         for (const type of types) {
             for (const action of this.get_actions(type)) {
                 let choice = this.get_action_data(ns, action, type)
-                if (choice.count <= 0) continue;
+                if (choice.count <= 10) continue;
                 if (choice.needs_intel) {
                     return this.get_best_intel_action(ns)
                 }
@@ -294,6 +296,8 @@ export class BladeManager {
 
     city_chaos(ns) {
         for (const city of Utils.cities) {
+            const min_communities = 50
+            if (min_communities > ns.bladeburner.getCityCommunities(city)) continue;
             const chaos = ns.bladeburner.getCityChaos(city)
             if (chaos > this.max_chaos) {
                 this.messenger.add_message(`BladeManager city chaos alert`, `  City ${city} at chaos level ${Math.ceil(chaos)}`)
