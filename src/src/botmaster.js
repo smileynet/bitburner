@@ -9,6 +9,7 @@ export class BotMaster {
         this.messenger = messenger
         this.finished = false
         this.jobs = [];
+        this.use_hacknet = false
     }
 
     async run(ns) {
@@ -91,6 +92,7 @@ export class BotMaster {
         const available_bots = this.bots.filter(bot => bot.available);
         available_bots.sort((a, b) => b.available_ram - a.available_ram);
         for (const bot of available_bots) {
+            if (!this.use_hacknet && bot.name.includes('hacknet')) continue;
             let active_jobs = this.create_jobs_batch(ns);
             while (bot.available && active_jobs.length > 0) {
                 let job = active_jobs.shift();
