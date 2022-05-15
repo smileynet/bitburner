@@ -30,7 +30,7 @@ export class HackNetManager {
         let message
         if (belowMaxNodes && nextNodeCost < nextUpgrade.cost) {
             if (nextNodeCost < ns.getServerMoneyAvailable("home")) {
-                message = `  Purchasing additional Hacknet Server!`
+                message = `  Purchased additional Hacknet Server.`
                 this.messenger.append_message('HackNet Upgrade Purchased', message)
                 ns.hacknet.purchaseNode()
             } else {
@@ -39,7 +39,7 @@ export class HackNetManager {
             }
         } else {
             if (nextUpgrade.cost < ns.getServerMoneyAvailable("home")) {
-                message = `  Upgrading Hacknet Server ${nextUpgrade.server}: ${nextUpgrade.type}`
+                message = `  Purchased ${nextUpgrade.type} upgrade for Hacknet Server ${nextUpgrade.server}.`
                 this.messenger.append_message('HackNet Upgrade Purchased', message)
                 nextUpgrade.upgradeFunction(nextUpgrade.server, 1)
             } else {
