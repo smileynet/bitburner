@@ -199,6 +199,9 @@ export class BladeManager {
                 if (not_completed) {
                     const estimated_success = ns.bladeburner.getActionEstimatedSuccessChance(type, action)
                     if (estimated_success[1] - estimated_success[0] > this.max_intel_spread) {
+                        this.next_city = 'Sector-12';
+                        ns.print(`Gathering intel to improve black-op accuracy`)
+
                         return this.get_best_intel_action(ns)
                     }
                     const estimated_success_avg = (estimated_success[0] + estimated_success[1]) / 2
