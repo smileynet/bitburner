@@ -9,7 +9,7 @@
 *.user
 *.userosscache
 *.sln.docstates
-*.txt
+contracts.txt
 data/
 workspace.code-workspace
 old_bitburner
