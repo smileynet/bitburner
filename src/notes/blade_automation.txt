@@ -1,0 +1,6 @@
+automate stamina 40 low
+automate stamina 50 high
+automate general 'Training'
+low
+automate contract Tracking high
+automate en
