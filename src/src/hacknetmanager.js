@@ -6,6 +6,7 @@ export class HackNetManager {
         this.messenger = messenger;
         this.finished = false;
         this.hashThreshold = 0.7
+        this.reserveFundsPercentage = 0.4
     }
 
     async init(ns) {
@@ -21,15 +22,18 @@ export class HackNetManager {
 
     }
 
+    available_funds(ns) {
+        return ns.getServerMoneyAvailable("home") * this.reserveFundsPercentage
+    }
+
     upgrade_hacknet(ns) {
         const nextUpgrade = this.get_next_upgrade(ns)
-
         const numNodes = ns.hacknet.numNodes();
         const belowMaxNodes = numNodes < ns.hacknet.maxNumNodes() ? true : false;
         const nextNodeCost = ns.hacknet.getPurchaseNodeCost()
         let message
-        if (belowMaxNodes && nextNodeCost < nextUpgrade.cost) {
-            if (nextNodeCost < ns.getServerMoneyAvailable("home")) {
+        if (numNodes == 0 || (belowMaxNodes && nextNodeCost < nextUpgrade.cost)) {
+            if (nextNodeCost < this.available_funds(ns)) {
                 message = `  Purchased additional Hacknet Server.\n`
                 this.messenger.append_message('HackNet Upgrade Purchased', message)
                 ns.hacknet.purchaseNode()
@@ -38,12 +42,12 @@ export class HackNetManager {
                 this.messenger.add_message('HackNet Next Upgrade', message)
             }
         } else {
-            if (nextUpgrade.cost < ns.getServerMoneyAvailable("home")) {
+            if (nextUpgrade.cost < this.available_funds(ns)) {
                 message = `  Purchased ${nextUpgrade.type} upgrade for Hacknet Server ${nextUpgrade.server}.\n`
                 this.messenger.append_message('HackNet Upgrade Purchased', message)
                 nextUpgrade.upgradeFunction(nextUpgrade.server, 1)
             } else {
-                message = `  Waiting to purchase ${nextUpgrade.type} upgrade for node ${nextUpgrade.server}. Cost: $${Utils.pretty_num(nextUpgrade.cost)}\n`
+                message = `  Waiting to purchase ${nextUpgrade.type} upgrade for node ${nextUpgrade.server}. Cost: $${Utils.pretty_num(nextUpgrade.cost)} Gain: ${Utils.pretty_num(nextUpgrade.gain,2)}\n`
                 this.messenger.add_message('HackNet Next Upgrade', message)
             }
         }
@@ -72,19 +76,19 @@ export class HackNetManager {
                 }
             }
         }
-        const message = `Next Upgrade:  ${JSON.stringify(nextUpgrade)}`
-        ns.print(message)
         return nextUpgrade
     }
 
     spend_hashes(ns) {
         const desiredUpgrades = ["Exchange for Bladeburner Rank", "Exchange for Bladeburner SP"]
         const currentHashes = ns.hacknet.numHashes();
-
+        let message
         for (const upgrade of desiredUpgrades) {
             const currentHashes = ns.hacknet.numHashes();
             if (currentHashes > ns.hacknet.hashCost(upgrade)) {
-                ns.tprint(`Using hashes: ${upgrade}.`)
+                message = `  Using hashes: ${upgrade}\n`
+                this.messenger.append_message('HackNet Hashes Spent', message)
+                ns.print(message)
                 ns.hacknet.spendHashes(upgrade)
                 return
             }
@@ -92,6 +96,8 @@ export class HackNetManager {
 
         const maxHashes = ns.hacknet.hashCapacity();
         if (currentHashes / maxHashes > this.hashThreshold) {
+            message = `  Using hashes: Sell for Money.\n`
+            this.messenger.append_message('HackNet Hashes Spent', message)
             ns.print(`Using hashes: Sell for Money.`)
             ns.hacknet.spendHashes("Sell for Money")
         }
