@@ -12,8 +12,8 @@ class Init {
             { name: 'gang', enabled: false, running: false, script: '/src/gangmanager.js', requirements: 'Need to be in a gang (-54000 karma)' },
             { name: 'corp', enabled: true, running: false, script: '/src/corpmanager.js', requirements: 'Need to form a corp ($150b)' },
             { name: 'bladeburner', enabled: true, running: false, script: '/src/blademanager.js', requirements: 'Need to join Bladeburners  (100 each combat stat), runs after PlayerManager completes.' },
-            { name: 'hacking', enabled: true, running: false, script: '/src/botmaster.js', requirements: 'None.' },
             { name: 'hacknet', enabled: true, running: false, script: '/src/hacknetmanager.js', requirements: 'None.' },
+            { name: 'hacking', enabled: true, running: false, script: '/src/botmaster.js', requirements: 'None.' },
         ];
     }
 
